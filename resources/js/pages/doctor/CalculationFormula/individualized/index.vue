@@ -3,7 +3,7 @@
     import { Head, router, useForm } from '@inertiajs/vue3';
     import PersonalData from '../PersonalData.vue';
     import Button from '@/components/ui/button/Button.vue';
-    import { ref } from 'vue';
+    import { onMounted, ref } from 'vue';
     import FormCalculation from './form.vue';
     import Result from './result.vue';
     import Timer from '../Timer.vue';
@@ -134,14 +134,11 @@
     ]
 
     const CurrentStep = ref(0);
-    const paused = ref(false)
+    const paused = ref(true)
     const formRef = ref<HTMLFormElement | null>(null)
 
     const nextStep = () => {
         let isValid = false
-        if (CurrentStep.value == 1) {
-            paused.value = true
-        }
 
         const formEL = formRef.value
 
@@ -153,7 +150,17 @@
         }
 
         if (isValid){
+            if (CurrentStep.value == 1) {
+                paused.value = true
+            }else{
+
+                paused.value = false
+            }
             CurrentStep.value++
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
         }
     }
 
@@ -169,6 +176,7 @@
         })
 
     }
+
 </script>
 <template>
     <Head title="Individualized" />
@@ -177,9 +185,9 @@
 
             <div class="text-xl font-bold md:text-2xl">NEOtrition Individualized</div>
             <div class="text-base font-bold md:text-xl" >{{ steps[CurrentStep] }}</div>
-            <Timer :form="form" :paused="paused"/>
+            <Timer :form="form" :paused="paused" :step="CurrentStep"/>
         </div>
-        <form action="/" ref="formRef" method="POST">
+        <form id="mainForm" action="/" ref="formRef" method="POST">
             <PersonalData :patients="patients" :form="form" v-if="CurrentStep == 0" />
             <FormCalculation :form="form" v-if="CurrentStep == 1" />
             <Result :form="form" v-if="CurrentStep == 2" />

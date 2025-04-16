@@ -2,18 +2,23 @@
 import Button from '@/components/ui/button/Button.vue';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { Pause, Play } from 'lucide-vue-next';
+import { PropType } from 'vue';
 const props = defineProps({
     form: {
         type: Object,
         required: true
     },
     paused: {
-        typpe: Boolean,
+        type: Boolean,
         required: true
     },
     methodCalculation: {
         type: String,
         required: false,
+    },
+    step: {
+        type: Number,
+        required: true
     }
 })
 
@@ -22,6 +27,7 @@ const emit = defineEmits(['update:paused']);
 const hours = ref(0);
 const minutes = ref(0);
 const seconds = ref(0);
+const statusTimer = ref(false)
 
 let intervalId: number;
 
@@ -31,7 +37,7 @@ const pad = (value: number) => {
 
 const startTimer = () => {
   intervalId = setInterval(() => {
-    if(props.paused == false && ![null, undefined, ''].includes(props.form.medical_record_number)){
+    if(props.paused == false){
         seconds.value++;
         if (seconds.value >= 60) {
           seconds.value = 0;
@@ -50,8 +56,19 @@ const togglePaused = () => {
   emit('update:paused', !props.paused);
 };
 
+const handleScroll = () => {
+    const formEl = document.getElementById('mainForm');
+    if (formEl) {
+        const rect = formEl.getBoundingClientRect();
+        statusTimer.value = rect.top <= 0;
+    }
+
+};
+
 onMounted(() => {
-  startTimer();
+    startTimer();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
 });
 
 onUnmounted(() => {
@@ -60,7 +77,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex items-center justify-end w-full font-mono text-2xl">
+  <div class="flex items-center justify-end font-mono text-2xl" :class="{ 'fixed bottom-[70px] left-7 py-2 rounded-lg px-7 bg-white z-[1000]': statusTimer, 'w-full' : !statusTimer }">
     <Button class="mr-5" type="button" @click="togglePaused" v-if="methodCalculation == 'manual'">
         <Pause v-if="props.paused == false"/>
         <Play v-else/>

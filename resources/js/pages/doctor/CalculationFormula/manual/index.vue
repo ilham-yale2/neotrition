@@ -3,7 +3,7 @@
     import { Head, router, useForm } from '@inertiajs/vue3';
     import PersonalData from '../PersonalData.vue';
     import Button from '@/components/ui/button/Button.vue';
-    import { ref } from 'vue';
+    import { ref, watch } from 'vue';
     import Result from './result.vue';
     import Timer from '../Timer.vue';
 
@@ -45,7 +45,7 @@
     ]
 
     const CurrentStep = ref(0);
-    const paused = ref(false)
+    const paused = ref(true)
     const formRef = ref<HTMLFormElement | null>(null)
 
     const nextStep = () => {
@@ -80,6 +80,13 @@
         })
 
     }
+    watch(form, () => {
+        if (![null, undefined, ''].includes(form.medical_record_number)) {
+            paused.value = false
+        }else{
+            paused.value = true
+        }
+    })
 </script>
 <template>
     <Head title="Manual" />
@@ -88,7 +95,7 @@
 
             <div class="text-xl font-bold md:text-2xl">NEOtrition manual</div>
             <div class="text-base font-bold md:text-xl" >{{ steps[CurrentStep] }}</div>
-            <Timer :form="form" v-model:paused="paused" :methodCalculation="'manual'"/>
+            <Timer :form="form" v-model:paused="paused" :methodCalculation="'manual'" :step="0"/>
         </div>
         <form action="/" ref="formRef" method="POST">
             <PersonalData :methodCalculation="'manual'" :patients="patients" :form="form" v-if="CurrentStep == 0" />

@@ -90,3 +90,9 @@ html {
         @apply bg-background text-foreground;
     }
 }
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+    @apply !bg-slate-200
+}
