@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 
 export function checkValueNumber(value: any) {
-    var result = parseFloat(value)
+    const result = parseFloat(value)
     return (value == null || isNaN(result)) ? 0 : result
 }
 

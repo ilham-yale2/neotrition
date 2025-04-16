@@ -50,10 +50,6 @@
             size: 'md:col-span-6',
         },
     ]
-    interface props {
-    }
-
-    const props = defineProps<props>();
 
 
     const breadcrumbs = [

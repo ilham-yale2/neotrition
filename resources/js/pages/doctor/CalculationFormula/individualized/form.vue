@@ -36,7 +36,7 @@
     }
 
     const total_fluid_volume = computed(() => {
-        let value = form.fluid_volume_per_day * form.actual_weight
+        const value = form.fluid_volume_per_day * form.actual_weight
         form.total_fluid_volume = value.toFixed(2)
     })
 
@@ -271,7 +271,7 @@
     }
 
     const defaultValueOtherTransfusion = (inputCorrection: string, index: number) => {
-        var value = 0
+        let value = 0
         if (inputCorrection === 'amount_transfusion' && form['other_transfusion_need'] != null) {
             value = checkValueNumber(form['other_transfusion_need'][index]) * checkValueNumber(form['actual_weight'])
             form['other_transfusion_amount_transfusion'][index] = checkValueNumber(value).toFixed(2)
@@ -289,7 +289,7 @@
 
 
     const getTotalOtherTransfusion = computed(() => {
-        let amounts = form['other_transfusion_amount_transfusion'] ?? []
+        const amounts = form['other_transfusion_amount_transfusion'] ?? []
         let total = 0;
         amounts.forEach((totalFluid: number) => {
             total = (total + checkValueNumber(totalFluid))
@@ -372,11 +372,11 @@
     }
 
     const defaultValuePrcTransfusion = (inputCorrection: string, index: number) => {
-        var value = 0
+        let value = 0
         if (index == 0) {
             if (inputCorrection == 'amount_transfusion' && form['prc_transfusion_hb_target'] != null) {
-                let calculate = (form['prc_transfusion_hb_target'][index] - form['hemoglobin']) * form['actual_weight'] * 4
-                let batasAtas = form['actual_weight'] * 20;
+                const calculate = (form['prc_transfusion_hb_target'][index] - form['hemoglobin']) * form['actual_weight'] * 4
+                const batasAtas = form['actual_weight'] * 20;
 
                 value = parseFloat(Math.max(0, Math.min(calculate, batasAtas)).toFixed(2));
                 form['prc_transfusion_'+inputCorrection][index] = value
@@ -455,7 +455,7 @@
 
         if(field == 'volume' && form['pg_volume'] != null){
             if(index == 0){
-                let prc_transfusion_amount = form['prc_transfusion_amount_transfusion'].reduce((a: number, b: number) => a + b, 0)
+                const prc_transfusion_amount = form['prc_transfusion_amount_transfusion'].reduce((a: number, b: number) => a + b, 0)
                 value = form['total_fluid_volume'] - form['total_fluid_continue'] - form['total_fluid_intermitten'] - prc_transfusion_amount - form['other_transfusion_total'] - form['nutrition_total'][1] - form['parental_total'] - form['correction_continue_total_fluid'] - form['correction_intermitten_daily_total']
 
             }else{
@@ -512,12 +512,12 @@
         let value = 0;
         if(form['non_dextrose_name'] != null){
             if (index == 0) {
-                let total = parseFloat(form['non_dextrose_need'][index]) * parseFloat(form['actual_weight']) * 100
+                const total = parseFloat(form['non_dextrose_need'][index]) * parseFloat(form['actual_weight']) * 100
                 value = safeDivide(total, 10);
 
 
             }else if(index == 1){
-                let weight = form['actual_weight'] * 1000 * parseFloat(form['non_dextrose_need'][index])
+                const weight = form['actual_weight'] * 1000 * parseFloat(form['non_dextrose_need'][index])
                 value = safeDivide(weight , 513);
 
 
@@ -545,10 +545,10 @@
             }else if(index == 2 ){
 
                 // volume D40
-                let calculate = form['dextrose'][4] * form['pg_volume'][0]
-                let calculate1 = form['pg_volume'][1] * 10
-                let hasil = parseFloat(calculate.toFixed(2)) - parseFloat(calculate1.toFixed(2))
-                let value = hasil / 30;
+                const calculate = form['dextrose'][4] * form['pg_volume'][0]
+                const calculate1 = form['pg_volume'][1] * 10
+                const hasil = parseFloat(calculate.toFixed(2)) - parseFloat(calculate1.toFixed(2))
+                const value = hasil / 30;
 
                 result = Math.max(0, value > form['pg_volume'][1] ? form['pg_volume'][1] : value.toFixed(2));
             }else if (index == 3){
@@ -558,7 +558,7 @@
 
             }else if(index == 4){
                 // Dekstrositas (%)
-                let calculate = (form['dextrose'][0] * 6 * form['actual_weight']).toFixed(1)
+                const calculate = (form['dextrose'][0] * 6 * form['actual_weight']).toFixed(1)
                 result = parseFloat(form['dextrose'][0]) > 0 ? Math.min(safeDivide(parseFloat(calculate), form['pg_rate_continue']), 25) : 0;
             }else if(index == 5){
                 // Dekstrositas Terkoreksi (%)
@@ -589,7 +589,7 @@
     }
 
     const cairanNote = computed(() => {
-        let note = getCairanNote(parseFloat(form['actual_age']), parseFloat(form['gestational_age']), parseFloat(form['fluid_volume_per_day']), parseFloat(form['total_fluid_volume']) )
+        const note = getCairanNote(parseFloat(form['actual_age']), parseFloat(form['gestational_age']), parseFloat(form['fluid_volume_per_day']), parseFloat(form['total_fluid_volume']) )
 
         form['formula_warning_total_volume_note'] = note
 
@@ -599,7 +599,7 @@
     const warningBalanceEstimate = (field: string) => {
         let value = 0
         if (field == 'balance_estimate') {
-            let calculate = form['output_fluid'] * safeDivide(24, form['time_calculation'])
+            const calculate = form['output_fluid'] * safeDivide(24, form['time_calculation'])
             value = parseFloat(form['total_fluid_volume']) - (parseFloat(form['insensible_water_loss']) + calculate )
             form['formula_warning_balance_estimate'] = value.toFixed(2);
         }else{
@@ -763,7 +763,7 @@
 
         // non_dextrose_need
         // non_dextrose_total
-        let ndf: any = [];
+        const ndf: any = [];
         nonDextroseFields.forEach((field, index) => {
             ndf.push(field.label)
             form['non_dextrose_need'] = form['non_dextrose_need'] ?? [0, 0, 0, 0, 0 ,0 , 0, 0]

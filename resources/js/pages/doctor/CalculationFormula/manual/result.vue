@@ -113,7 +113,7 @@ import { computed } from 'vue';
     }
 
     const getDextroseWarn = computed(() => {
-        let dextrose = parseFloat(form['dextrose'][5]);
+        const dextrose = parseFloat(form['dextrose'][5]);
         if (dextrose > 0 && dextrose <= 12.5) {
             return "Dekstrositas < 12,5% sehingga aman jika diberikan melalui infus periferal";
         } else if (dextrose > 12.5) {
@@ -125,7 +125,7 @@ import { computed } from 'vue';
     })
 
     const getOsmolarity = computed(() => {
-        let osmolarity = parseFloat(form['dextrose'][6])
+        const osmolarity = parseFloat(form['dextrose'][6])
         if (osmolarity > 0 && osmolarity <= 900) {
             return "Osmolaritas terhitung rendah, sehingga aman jika diberikan melalui infus periferal";
         } else if (osmolarity > 900) {
@@ -219,7 +219,7 @@ import { computed } from 'vue';
                        Rate (mL/jam)
                     </th>
                 </tr>
-                <tr v-for="(item, index) in form['setup_continue_name']" :key:="index">
+                <tr v-for="(item, index) in form['setup_continue_name']" :key="index">
                     <td class="px-4 py-2 border border-gray-300">
                         {{item}}
                     </td>
@@ -256,7 +256,7 @@ import { computed } from 'vue';
                     </th>
                 </tr>
 
-                <tr v-for="(item, index) in form['setup_intermitten_name']" :key:="index">
+                <tr v-for="(item, index) in form['setup_intermitten_name']" :key="index">
                     <td class="px-4 py-2 border border-gray-300">
                         {{item}}
                     </td>

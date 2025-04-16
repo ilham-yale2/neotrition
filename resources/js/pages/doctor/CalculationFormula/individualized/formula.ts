@@ -268,7 +268,7 @@ export function osmolarity(
 ) {
     if (Number(B88) === 0 || Number(C84) === 0) return 0;
 
-    let hasil =
+    const hasil =
         safeDivide((B92 * B8 * 1000), B88) +
         safeDivide((((0.4 * C102) + (0.1 * D102)) * 1000 * 5), B88) +
         safeDivide((0.513 * C93 * 1000), B88) +

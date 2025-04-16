@@ -12,7 +12,7 @@ import { onMounted, ref } from 'vue';
 
 const page = usePage<SharedData>();
 const user = page.props.auth.user as User;
-let navItems = ref<{ title: string; items: NavItem[] }[]>([]);
+const navItems = ref<{ title: string; items: NavItem[] }[]>([]);
 
 onMounted(() => {
 

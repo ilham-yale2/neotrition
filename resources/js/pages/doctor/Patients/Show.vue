@@ -113,7 +113,7 @@
                     <form :action="route('my-patients.update', props.patient.id)" method="POST" @submit.prevent="handleForm">
                         <input type="hidden" name="_method" value="PUT">
                         <div class="grid w-full grid-cols-12 bg-white rounded-lg gap-7">
-                            <div :class="field.size" class="col-span-12" v-for="field in patientFields">
+                            <div :class="field.size" class="col-span-12" v-for="field in patientFields" :key="field.name">
                                 <InputGroup :form="form" :label="field.label" :name="field.name" :type="field.type" :placeholder="field?.placeholder" :required="field.required" :disabled="field?.disabled" :defaultValue="field?.defaultValue"  />
                             </div>
                         </div>

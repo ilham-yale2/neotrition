@@ -113,7 +113,7 @@ import { computed } from 'vue';
     }
 
     const getDextroseWarn = computed(() => {
-        let dextrose = parseFloat(form['dextrose'][5]);
+        const dextrose = parseFloat(form['dextrose'][5]);
         if (dextrose > 0 && dextrose <= 12.5) {
             return "Dekstrositas < 12,5% sehingga aman jika diberikan melalui infus periferal";
         } else if (dextrose > 12.5) {
@@ -125,7 +125,7 @@ import { computed } from 'vue';
     })
 
     const getOsmolarity = computed(() => {
-        let osmolarity = parseFloat(form['dextrose'][6])
+        const osmolarity = parseFloat(form['dextrose'][6])
         if (osmolarity > 0 && osmolarity <= 900) {
             return "Osmolaritas terhitung rendah, sehingga aman jika diberikan melalui infus periferal";
         } else if (osmolarity > 900) {
@@ -219,7 +219,7 @@ import { computed } from 'vue';
                        Rate (mL/jam)
                     </th>
                 </tr>
-                <tr v-for="(item, index) in form['setup_continue_name']" :key:="index">
+                <tr v-for="(item, index) in form['setup_continue_name']" :key="index">
                     <td class="px-4 py-2 border border-gray-300">
                         {{item}}
                     </td>
@@ -256,7 +256,7 @@ import { computed } from 'vue';
                     </th>
                 </tr>
 
-                <tr v-for="(item, index) in form['setup_intermitten_name']" :key:="index">
+                <tr v-for="(item, index) in form['setup_intermitten_name']" :key="index">
                     <td class="px-4 py-2 border border-gray-300">
                         {{item}}
                     </td>
@@ -284,7 +284,7 @@ import { computed } from 'vue';
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(item, im) in ['NaCl 3%', 'KCl']">
+                <tr v-for="(item, im) in ['NaCl 3%', 'KCl']" :key="im">
                     <td class="px-4 py-2 text-center border border-gray-300">{{ item }}</td>
                     <td class="px-4 py-2 text-center border border-gray-300"></td>
                     <td class="px-4 py-2 text-center border border-gray-300">
@@ -371,7 +371,7 @@ import { computed } from 'vue';
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(nutrition, ni) in form['nutrition_name']">
+                <tr v-for="(nutrition, ni) in form['nutrition_name']" :key="ni">
                     <td class="px-4 py-2 text-left border border-gray-300">{{ nutrition }}</td>
                     <td class="px-4 py-2 text-center border border-gray-300">{{ form['nutrition_total'][ni] }}</td>
                     <td class="px-4 py-2 text-center border border-gray-300">{{ form['nutrition_need'][ni] }}</td>
@@ -423,7 +423,7 @@ import { computed } from 'vue';
                     <th class="px-4 py-2 border border-gray-300">Volume (mL)</th>
                     <th class="px-4 py-2 border border-gray-300">PERINGATAN</th>
                 </tr>
-                <tr v-for="(pgItem, index) in ['Aminosteril 10% (gr/kg)', 'Na - NaCl 3% (mEq/kg)', 'K - KCl (mEq/kg)', 'Ca - Ca Gluconas (mEq/kg)', 'PO4 - Na3PO4 (mEq/kg)', 'Mg - MgSO4 20% (mEq/kg)', 'Soluvit (1 mL/kg)', 'Heparin (IU)']">
+                <tr v-for="(pgItem, index) in ['Aminosteril 10% (gr/kg)', 'Na - NaCl 3% (mEq/kg)', 'K - KCl (mEq/kg)', 'Ca - Ca Gluconas (mEq/kg)', 'PO4 - Na3PO4 (mEq/kg)', 'Mg - MgSO4 20% (mEq/kg)', 'Soluvit (1 mL/kg)', 'Heparin (IU)']" :key="index">
                     <td class="px-4 py-2 text-left border border-gray-300">{{ pgItem }}</td>
                     <td class="px-4 py-2 text-center border border-gray-300">{{ [5,7].includes(index) ? '' : form['non_dextrose_need'][index] }}</td>
                     <td class="px-4 py-2 text-center border border-gray-300">{{  form['non_dextrose_total'][index] }}</td>

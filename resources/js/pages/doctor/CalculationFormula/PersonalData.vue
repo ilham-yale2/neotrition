@@ -132,7 +132,7 @@
 
     const getDailyBalansVolume = (fieldName: string) => {
         if (fieldName != 'daily_balance') {
-            var result = checkValueNumber(form[fieldName] / form['actual_weight']).toFixed(1);
+            const result = checkValueNumber(form[fieldName] / form['actual_weight']).toFixed(1);
             form[fieldName+'_volume'] = result;
             return result
         }else{

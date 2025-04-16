@@ -35,16 +35,16 @@
 
     const getDateDIF = (date1: any, date2: any) => {
         let age = 0;
-        let start = new Date(date1);
-        let end = new Date(date2);
+        const start = new Date(date1);
+        const end = new Date(date2);
 
-        let startDay = start.getDate();
-        let endDay = end.getDate();
+        const startDay = start.getDate();
+        const endDay = end.getDate();
 
         if (endDay >= startDay) {
             age =  endDay - startDay;
         } else {
-            let prevMonth = new Date(end.getFullYear(), end.getMonth(), 0).getDate();
+            const prevMonth = new Date(end.getFullYear(), end.getMonth(), 0).getDate();
             age =  (prevMonth - startDay) + endDay;
         }
 
