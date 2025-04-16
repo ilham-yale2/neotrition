@@ -70,21 +70,21 @@ export function useAppearance() {
 
         const savedAppearance = localStorage.getItem('appearance') as Appearance | null;
 
-        if (savedAppearance) {
-            appearance.value = savedAppearance;
-        }
+        // if (savedAppearance) {
+        appearance.value = 'light';
+        // }
     });
 
     function updateAppearance(value: Appearance) {
-        appearance.value = value;
+        appearance.value = 'light';
 
         // Store in localStorage for client-side persistence...
-        localStorage.setItem('appearance', value);
+        localStorage.setItem('appearance', 'light');
 
         // Store in cookie for SSR...
-        setCookie('appearance', value);
+        setCookie('appearance', 'light');
 
-        updateTheme(value);
+        updateTheme('light');
     }
 
     return {

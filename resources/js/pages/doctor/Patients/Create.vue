@@ -38,7 +38,7 @@
             label: 'Nomor Rekam Medis ',
             required: true,
             name: 'medical_record_number',
-            type: 'number',
+            type: 'text',
             placeholder: 'Masukkan Nomor Rekam Medis',
             size: 'md:col-span-6',
         },

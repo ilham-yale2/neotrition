@@ -31,7 +31,7 @@ const pad = (value: number) => {
 
 const startTimer = () => {
   intervalId = setInterval(() => {
-    if(props.paused == false){
+    if(props.paused == false && ![null, undefined, ''].includes(props.form.medical_record_number)){
         seconds.value++;
         if (seconds.value >= 60) {
           seconds.value = 0;
