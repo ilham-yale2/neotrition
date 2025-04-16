@@ -37,11 +37,11 @@ onMounted(() => {
                         icon: StethoscopeIcon,
                         activePaths: ['doctor.index'],
                     },
-                    {
-                        title: 'Patients',
-                        href: '/dashboard',
-                        icon: HeartPulse,
-                    },
+                    // {
+                    //     title: 'Patients',
+                    //     href: '/dashboard',
+                    //     icon: HeartPulse,
+                    // },
                 ] as NavItem[]
             },
             {
