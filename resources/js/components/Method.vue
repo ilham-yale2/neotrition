@@ -34,7 +34,7 @@ const methods =  [
                 {
                     title: 'NEOtrition',
                     subtitle: 'PG2',
-                    disabled: true,
+                    disabled: false,
                     items: [
                         'Kalkulator otomatis untuk menghitung jumlah/volume yang dibutuhkan untuk kebutuhan TPN yang dibutuhkan',
                         'Sesuai rumus PG2',

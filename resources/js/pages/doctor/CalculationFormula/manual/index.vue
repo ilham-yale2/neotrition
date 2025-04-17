@@ -75,9 +75,16 @@
     }
 
     const submit = () => {
-        form.submit('post', route('calculation-formula.store', 'manual'), {
+        const formEL = formRef.value
 
-        })
+        if (formEL && formEL.checkValidity()) {
+
+            form.submit('post', route('calculation-formula.store', 'manual'), {
+
+            })
+        } else if (formEL) {
+            formEL.reportValidity()
+        }
 
     }
     watch(form, () => {
@@ -97,7 +104,7 @@
             <div class="text-base font-bold md:text-xl" >{{ steps[CurrentStep] }}</div>
             <Timer :form="form" v-model:paused="paused" :methodCalculation="'manual'" :step="0"/>
         </div>
-        <form action="/" ref="formRef" method="POST">
+        <form id="mainForm" action="/" ref="formRef" method="POST">
             <PersonalData :methodCalculation="'manual'" :patients="patients" :form="form" v-if="CurrentStep == 0" />
             <div class="flex justify-end w-full gap-6 p-10">
                 <Button v-if="CurrentStep > 0" @click="backStep" variant="outline" type="button">Back</Button>

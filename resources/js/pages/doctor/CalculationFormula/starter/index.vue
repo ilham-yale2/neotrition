@@ -62,11 +62,12 @@
         humidity_incubator: null,
         infant_wrapping: null,
         current_temperature: null,
+        calculated_fluid_volume: null,
         other_transfusion_total: null,
+        fluid_volume_per_day: null,
         formula_warning_total_volume_note: null,
         formula_warning_balance_estimate: null,
         formula_warning_balance_volume: null,
-        fluid_volume_per_day: null,
         total_fluid_volume: null,
         other_transfusion_name: null,
         nutrition_name: null,
@@ -102,6 +103,8 @@
         prc_transfusion_rate: null,
         pg_volume: null,
         pg_total: null,
+        pg_needs: null,
+        pg_estimate: null,
         total_fluid_continue: null,
         total_fluid_intermitten: null,
         nutrition_need: null,
@@ -109,8 +112,8 @@
         nutrition_interval: null,
         nutrition_volume: null,
         nutrition_total: null,
-        non_dextrose_need: null,
         non_dextrose_total: null,
+        non_dextrose_volume: null,
         non_dextrose_name: null,
         dextrose: null,
         formula_warning_note: null,
@@ -118,19 +121,18 @@
         warning_nutrition_formula: null,
         correction_continue_total_fluid: null,
         parental_total: null,
-        pg_rate_continue: null,
         formula_warning_electrolyte_estimate: null,
         formula_warning_electrolyte_daily_dose: null,
         input_fluid: 0,
         output_fluid: 0,
         time_calculation: 0,
-
+        calculated_formula: 0
     })
 
     const steps = [
         'Patient Personal Data',
         'PENGHITUNGAN CAIRAN DAN NUTRISI PARENTERAL',
-        'RESEP NEOtrition - Individualized'
+        'RESEP NEOtrition - Starter'
     ]
 
     const CurrentStep = ref(0);
@@ -139,6 +141,9 @@
 
     const nextStep = () => {
         let isValid = false
+        if (CurrentStep.value == 1) {
+            paused.value = true
+        }
 
         const formEL = formRef.value
 
@@ -150,7 +155,7 @@
         }
 
         if (isValid){
-            if (CurrentStep.value == 1 ) {
+            if (CurrentStep.value == 1) {
                 paused.value = true
             }else{
 
@@ -171,20 +176,37 @@
     }
 
     const submit = () => {
-        form.submit('post', route('calculation-formula.store', 'individualized'), {
+        form.submit('post', route('calculation-formula.store', 'starter'), {
 
         })
 
     }
 
-
+    // onMounted(() => {
+    //     form['date_of_birth'] = '2011-11-11'
+    //     form['date_formula'] = '2025-04-14'
+    //     form['medical_record_number'] = '5'
+    //     form['actual_age'] = 3
+    //     form['actual_weight'] = 3.3
+    //     form['patient_name'] = 'Amediketu'
+    //     form['gestational_age'] = 2
+    //     form['date_of_treatment'] = '2025-04-13'
+    //     form['day_care'] = 1
+    //     form['clinical_sensation'] = '1'
+    //     form['natrium'] = 2
+    //     form['infant_warmer'] = 1
+    //     form['phototherapy'] = 1
+    //     form['humidity_incubator'] = 1
+    //     form['time_calculation'] = 4
+    //     form['input_fluid'] = 7
+    // })
 </script>
 <template>
-    <Head title="Individualized" />
+    <Head title="Starter" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="px-5 pt-5">
 
-            <div class="text-xl font-bold md:text-2xl">NEOtrition Individualized</div>
+            <div class="text-xl font-bold md:text-2xl">NEOtrition Starter</div>
             <div class="text-base font-bold md:text-xl" >{{ steps[CurrentStep] }}</div>
             <Timer :form="form" :paused="paused" :step="CurrentStep"/>
         </div>

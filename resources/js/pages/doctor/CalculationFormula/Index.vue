@@ -67,17 +67,17 @@ import Method from '@/components/Method.vue';
             key: 'timestamp',
             label: 'Waktu',
         },
-        {
-            key: 'action',
-            label: 'Action',
-            render: (value: any) => {
-                return h(ActionTable, {
-                    actions: ['view'],
-                    rowId: value.id,
-                    onAction: handleAction,
-                });
-            }
-        },
+        // {
+        //     key: 'action',
+        //     label: 'Action',
+        //     render: (value: any) => {
+        //         return h(ActionTable, {
+        //             actions: ['view'],
+        //             rowId: value.id,
+        //             onAction: handleAction,
+        //         });
+        //     }
+        // },
     ];
 
     const modalView = ref(false);

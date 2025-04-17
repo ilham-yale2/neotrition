@@ -74,6 +74,8 @@ import { computed } from 'vue';
         }
     ]
 
+    const volumes = ['Aminosteril 10%', 'Na - NaCl 3% (mL)', 'K - KCl (mL)', 'Ca - Ca Gluconas (mL)', 'PO4 - Na3PO4 (mL)', 'Mg - MgSO4 20% (mL)', 'D40%', 'D10%']
+
     const totalTransfusion = computed(() => {
         let total = 0
 
@@ -126,38 +128,40 @@ import { computed } from 'vue';
     }
 
     const getDextroseWarn = computed(() => {
-        const dextrose = parseFloat(form['dextrose'][5]);
+        const dextrose = parseFloat(form['non_dextrose_volume'][10]);
         if (dextrose > 0 && dextrose <= 12.5) {
             return "Dekstrositas < 12,5% sehingga aman jika diberikan melalui infus periferal";
         } else if (dextrose > 12.5) {
             return "Dekstrositas > 12,5% disarankan untuk menggunakan akses sentral";
         } else {
-            return "";
+            return "Dekstrositas 0%, harap untuk evaluasi kembali resep TPN";
         }
 
     })
 
     const getOsmolarity = computed(() => {
-        const osmolarity = parseFloat(form['dextrose'][6])
+        const osmolarity = parseFloat(form['non_dextrose_volume'][12])
         if (osmolarity > 0 && osmolarity <= 900) {
             return "Osmolaritas terhitung rendah, sehingga aman jika diberikan melalui infus periferal";
         } else if (osmolarity > 900) {
             return "Osmolaritas terhitung tinggi, disarankan untuk menggunakan akses sentral";
         } else {
-            return "";
+            return "Osmolaritas terhitung = 0, harap evaluasi resep TPN";
         }
     })
 
     const getTotalCalories = computed(() => {
         let value = 0
 
-        value = parseFloat((form['parental_need'][0] * 9).toFixed(2))
-             + parseFloat((4 * form['non_dextrose_need'][0]).toFixed(2))
-             + parseFloat(((( form['nutrition_calories'][0] / 100) * form['nutrition_total'][0]) / form['actual_weight']).toFixed(2))
-             + parseFloat(((( form['nutrition_calories'][1] / 100) * form['nutrition_total'][1]) / form['actual_weight']).toFixed(2))
-             + parseFloat((5.76 * form['dextrose'][1]).toFixed(2))
+        const lipid = form['parental_need'][0] * form['parental_total'];
+        const protein = 4 * form['pg_needs']['level'];
+        const parental = 5.76 * (parseFloat(form['dextrose'][1]) + parseFloat(form['non_dextrose_volume'][11]));
+        const nutrition1 = ((form['nutrition_calories'][0] / 100) * form['nutrition_total'][0]) / form['actual_weight'];
+        const nutrition2 = ((form['nutrition_calories'][1] / 100) * form['nutrition_total'][1]) / form['actual_weight'];
 
-        return value.toFixed(2)
+        value = lipid + protein + parental + nutrition1 + nutrition2;
+
+        return value.toFixed(2);
     })
 </script>
 
@@ -180,8 +184,8 @@ import { computed } from 'vue';
             <thead>
                 <tr class="bg-gray-100">
                     <th class="border border-gray-300 px-4 py-2 text-left w-[20%]">Total Cairan </th>
-                    <th class="px-4 py-2 border border-gray-300">ml/Kg </th>
                     <th class="px-4 py-2 border border-gray-300">VOLUME (mL) </th>
+                    <th class="px-4 py-2 border border-gray-300">ml/Kg </th>
                     <th class="px-4 py-2 border border-gray-300 w-[40%]">PERINGATAN </th>
                 </tr>
                 <tr>
@@ -189,10 +193,10 @@ import { computed } from 'vue';
                         TOTAL KEBUTUHAN CAIRAN
                     </th>
                     <td class="px-4 py-2 text-center border border-gray-300">
-                        {{form['fluid_volume_per_day']}}
+                        {{form['total_fluid_volume']}}
                     </td>
                     <td class="px-4 py-2 text-center border border-gray-300">
-                        {{form['total_fluid_volume']}}
+                        {{form['fluid_volume_per_day']}}
                     </td>
                     <td class="px-4 py-2 text-center border border-gray-300">
                         {{form['formula_warning_total_volume_note']}}
@@ -290,16 +294,14 @@ import { computed } from 'vue';
             <thead>
                 <tr class="bg-gray-100">
                     <th class="w-[20%] px-4 py-2 border border-gray-300">KOREKSI ELEKTROLIT MANDIRI</th>
-                    <th class="px-4 py-2 border border-gray-300">Dosis</th>
                     <th class="px-4 py-2 border border-gray-300">VOLUME (mL) </th>
                     <th class="px-4 py-2 border border-gray-300">Rate (mL/jam) </th>
                     <th class="w-[30%] px-4 py-2 border border-gray-300">PERINGATAN </th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(item, im) in ['NaCl 3%', 'KCl']" :key="im">
+                <tr v-for="(item, im) in ['NaCl 3%', 'KCl']" :key:="im">
                     <td class="px-4 py-2 text-center border border-gray-300">{{ item }}</td>
-                    <td class="px-4 py-2 text-center border border-gray-300"></td>
                     <td class="px-4 py-2 text-center border border-gray-300">
                         {{ form['correction_continue_total_volume'][im] }}
                     </td>
@@ -405,81 +407,112 @@ import { computed } from 'vue';
             <tbody>
                 <tr class="bg-gray-100">
                     <th class="w-[20%] px-4 py-2 border border-gray-300 text-left">1. Lipid</th>
-                    <th class="px-4 py-2 border border-gray-300">Kebutuhan yang Diresepkan</th>
                     <th class="px-4 py-2 border border-gray-300">Volume (mL)</th>
-                    <th class="px-4 py-2 border border-gray-300">PERINGATAN</th>
+                    <th class="px-4 py-2 border border-gray-300 w-[60%]">PERINGATAN</th>
                 </tr>
-                <tr v-for="(lipid, li) in ['SMOFLipid 20% (gr/kg)', 'Vitalipid (mL/kg)']">
+                <tr v-for="(lipid, li) in ['SMOFLipid 20% (gr/kg)', 'Vitalipid (mL/kg)']" :key="li">
                     <td class="px-4 py-2 text-left border border-gray-300">{{ lipid }}</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['parental_need'][li] }}</td>
                     <td class="px-4 py-2 text-center border border-gray-300">{{ form['parental_daily'][li] }}</td>
                     <td rowspan="4" v-if="li == 0" class="px-4 py-2 text-center border border-gray-300">
                         {{ form['warning_nutrition_note'][0] }}
                     </td>
                 </tr>
                 <tr>
-                    <th colspan="2" class="px-4 py-2 text-center border border-gray-300">
+                    <th colspan="1" class="px-4 py-2 text-center border border-gray-300">
                         Total Lipid
                     </th>
                     <td class="px-4 py-2 text-center border border-gray-300">{{ form['parental_total'] }}</td>
                 </tr>
                 <tr>
-                    <th colspan="2" class="px-4 py-2 text-center border border-gray-300">
+                    <th colspan="1" class="px-4 py-2 text-center border border-gray-300">
                         Rate Lipid
                     </th>
                     <td class="px-4 py-2 text-center border border-gray-300">{{ form['parental_rate_continue'] }}</td>
                 </tr>
 
                 <tr class="bg-gray-100">
-                    <th class="w-[20%] px-4 py-2 border border-gray-300 text-left">1. PG</th>
-                    <th class="px-4 py-2 border border-gray-300">Kebutuhan yang Diresepkan</th>
+                    <th class="w-[20%] px-4 py-2 border border-gray-300 text-left">2. PG</th>
                     <th class="px-4 py-2 border border-gray-300">Volume (mL)</th>
                     <th class="px-4 py-2 border border-gray-300">PERINGATAN</th>
                 </tr>
-                <tr v-for="(pgItem, index) in ['Aminosteril 10% (gr/kg)', 'Na - NaCl 3% (mEq/kg)', 'K - KCl (mEq/kg)', 'Ca - Ca Gluconas (mEq/kg)', 'PO4 - Na3PO4 (mEq/kg)', 'Mg - MgSO4 20% (mEq/kg)', 'Soluvit (1 mL/kg)', 'Heparin (IU)']" :key="index">
-                    <td class="px-4 py-2 text-left border border-gray-300">{{ pgItem }}</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ [5,7].includes(index) ? '' : form['non_dextrose_need'][index] }}</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{  form['non_dextrose_total'][index] }}</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{  getPGwarn(index) }}</td>
-                </tr>
-
-                <tr>
-                    <td class="px-4 py-2 text-left border border-gray-300" colspan="2">D40%</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][2] }}</td>
-                    <td rowspan="3" class="px-4 py-2 text-center border border-gray-300">
-                        {{ form['warning_nutrition_note'][2] }}
+                <tr v-for="(pgItem, index) in [0,4,1,2,5,3,6,7]" :key="index">
+                    <td class="px-4 py-2 text-left border border-gray-300">{{ volumes[index] }}</td>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{  form['non_dextrose_volume'][pgItem] }}</td>
+                    <td rowspan="3" class="px-4 py-2 text-center border border-gray-300" v-if="pgItem == 6">
+                        {{ form['warning_nutrition_note'] != null ? form['warning_nutrition_note'][2] : '' }}
+                    </td>
+                    <td class="px-4 py-2 text-center border border-gray-300" v-if="index == 0">
+                        {{ form['warning_nutrition_note'] != null ? form['warning_nutrition_note'][1] : '' }}
+                    </td>
+                    <td class="px-4 py-2 text-center border border-gray-300" v-if="index == 1">
+                        {{ form['formula_warning_note'] != null ? form['formula_warning_note'][0] : '' }}
+                    </td>
+                    <td class="px-4 py-2 text-center border border-gray-300" v-if="index == 2">
+                        {{ form['formula_warning_note'] != null ? form['formula_warning_note'][1] : '' }}
                     </td>
                 </tr>
+
+
                 <tr>
-                    <td class="px-4 py-2 text-left border border-gray-300" colspan="2">D10%</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][3] }}</td>
+                    <th class="px-4 py-2 text-left border border-gray-300" >GIR (mg/kg/min)</th>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{  form['non_dextrose_volume'][11] }}</td>
                 </tr>
                 <tr>
-                    <td class="px-4 py-2 text-left border border-gray-300" colspan="2">GIR</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][1] }}</td>
-                </tr>
-                <tr>
-                    <td class="px-4 py-2 text-left border border-gray-300" colspan="2">Dekstrositas</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][5] }}</td>
+                    <th class="px-4 py-2 text-left border border-gray-300" >Dekstrositas</th>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['non_dextrose_volume'][10] }}</td>
                     <td class="px-4 py-2 text-center border border-gray-300">{{ getDextroseWarn }}</td>
 
                 </tr>
                 <tr>
-                    <td class="px-4 py-2 text-left border border-gray-300" colspan="2">Osmolaritas</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][6] }}</td>
+                    <th class="px-4 py-2 text-left border border-gray-300" >Osmolaritas</th>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['non_dextrose_volume'][12] }}</td>
                     <td class="px-4 py-2 text-center border border-gray-300">{{ getOsmolarity }}</td>
                 </tr>
                 <tr>
-                    <th class="px-4 py-2 border border-gray-300" colspan="2">Total Volume PG	</th>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['pg_volume'][0] }}</td>
+                    <th class="px-4 py-2 text-left border border-gray-300" >Total Volume PG	</th>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['non_dextrose_volume'][8] }}</td>
                 </tr>
                 <tr>
-                    <th class="px-4 py-2 border border-gray-300" colspan="2">Rate PG	</th>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['pg_rate_continue']}}</td>
+                    <th class="px-4 py-2 text-left border border-gray-300" >Rate PG	</th>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['non_dextrose_volume'][9] }}</td>
+                </tr>
+                <tr>
+                    <th class="px-4 py-2 border border-gray-300" >Sisa Cairan Belum Masuk PG</th>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['non_dextrose_volume'][13] }}</td>
                 </tr>
             </tbody>
         </table>
 
+        <div class="mt-10 text-2xl">Dextrose Mandiri</div>
+        <table class="w-full mt-4 border border-gray-300 table-auto">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="w-[20%] px-4 py-2 border border-gray-300">Komposisi</th>
+                    <th class="px-4 py-2 border border-gray-300">Volume (mL)</th>
+                    <th class="px-4 py-2 border border-gray-300">Rate (mL/jam)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="px-4 py-2 text-left border border-gray-300">D40%</td>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][4] }}</td>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][5] }}</td>
+                </tr>
+                <tr>
+                    <td class="px-4 py-2 text-left border border-gray-300">D10%</td>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][5] }}</td>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][6] }}</td>
+                </tr>
+                <tr>
+                    <th class="px-4 py-2 text-left border border-gray-300">GIR</th>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][1] }}</td>
+                </tr>
+                <tr>
+                    <th class="px-4 py-2 text-left border border-gray-300">Dextrositas</th>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ form['dextrose'][2] }}</td>
+                </tr>
+            </tbody>
+        </table>
         <div class="mt-10 text-2xl">PENGHITUNGAN KALORI</div>
         <table class="w-full mt-4 border border-gray-300 table-auto">
             <thead>
@@ -493,12 +526,17 @@ import { computed } from 'vue';
                 <tr>
                     <td class="px-4 py-2 text-left border border-gray-300">LIPID</td>
                     <td class="px-4 py-2 text-center border border-gray-300">9</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ (form['parental_need'][0] * 9).toFixed(2) }}</td>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ (form['parental_need'][0] * form['parental_total']).toFixed(2) }}</td>
                 </tr>
                 <tr>
                     <td class="px-4 py-2 text-left border border-gray-300">PROTEIN</td>
                     <td class="px-4 py-2 text-center border border-gray-300">4</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ (4 * form['non_dextrose_need'][0]).toFixed(2) }}</td>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ 4 * form['pg_needs']['level'] }}</td>
+                </tr>
+                <tr>
+                    <td class="px-4 py-2 text-left border border-gray-300">KARBOHIDRAT PARENTERAL</td>
+                    <td class="px-4 py-2 text-center border border-gray-300">5.76 </td>
+                    <td class="px-4 py-2 text-center border border-gray-300">{{ (  5.76* (parseFloat(form['dextrose'][1]) + parseFloat(form['non_dextrose_volume'][11]))).toFixed(2) }}</td>
                 </tr>
                 <tr>
                     <td class="px-4 py-2 text-left border border-gray-300">KARBOHIDRAT (ORAL 1)</td>
@@ -511,13 +549,7 @@ import { computed } from 'vue';
                     <td class="px-4 py-2 text-center border border-gray-300">{{ ((( form['nutrition_calories'][1] / 100) * form['nutrition_total'][1]) / form['actual_weight']).toFixed(2) }}</td>
                 </tr>
                 <tr>
-                    <td class="px-4 py-2 text-left border border-gray-300">KARBOHIDRAT PARENTERAL</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">5.76</td>
-                    <td class="px-4 py-2 text-center border border-gray-300">{{ (5.76 * form['dextrose'][1]).toFixed(2) }}</td>
-                </tr>
-                <tr>
-                    <th class="px-4 py-2 border border-gray-300">TOTAL (KCAL/KG/HARI)</th>
-                    <td class="px-4 py-2 text-center border border-gray-300">5.76</td>
+                    <th colspan="2" class="px-4 py-2 text-left border border-gray-300">TOTAL (KCAL/KG/HARI)</th>
                     <td class="px-4 py-2 text-center border border-gray-300">{{ getTotalCalories}}</td>
                 </tr>
             </tbody>

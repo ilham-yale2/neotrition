@@ -1,6 +1,7 @@
 <script setup lang="ts">
     import { computed, ref } from 'vue';
     import {onMounted} from 'vue';
+    import Decimal from 'decimal.js';
     import Button from '@/components/ui/button/Button.vue';
     import InputGroup from '@/components/InputGroup.vue';
     import Dialog from '@/components/ui/dialog/Dialog.vue';
@@ -11,7 +12,7 @@
     import { FolderMinus, Syringe } from 'lucide-vue-next';
     import DialogDescription from '@/components/ui/dialog/DialogDescription.vue';
     import {checkValueNumber, safeDivide} from '@/lib/utils';
-    import { calculateEstimateElectrolyte, evaluasiGIR, evaluasiLipid, evaluasiProtein, evaluateNatrium, getCairanNote, kaliumWarning, osmolarity } from './formula';
+    import { calculateEstimateElectrolyte, evaluasiGIR, evaluasiLipid, evaluasiProtein, evaluateNatrium, getCairanNote, getPGVolume, kaliumWarning, osmolarity } from './formula';
 
     const props = defineProps({
         form: {
@@ -38,6 +39,8 @@
     const total_fluid_volume = computed(() => {
         const value = form.fluid_volume_per_day * form.actual_weight
         form.total_fluid_volume = value.toFixed(2)
+
+        return value.toFixed(2)
     })
 
     const patientFields: fieldInterface[] = [
@@ -112,33 +115,33 @@
 
     const nonDextroseFields: nonDextrose[] = [
         {
-            label: 'Aminosteril 10% (mL)'
+            label: 'Aminosteril 10%'
         },
         {
-            label: 'Na - NaCl 3% (0,513 mEq/mL) (mL)',
+            label: 'KCl',
             info: `Kadar Na di dalam sediaan NaCl:
                     - 1/2 NS = 0,077 mmol/mL
                     - NS = 0,154 mmol/mL
                     - NaCl 3% = 0,513 mmol/mL`
         },
         {
-            label: 'K - KCl 25 mEq/25 mL (mL)'
+            label: 'Ca Gluconas 10%'
         },
         {
-            label: 'Ca - Ca Gluconate 10% (mL)',
+            label: 'MgSO4 20%',
         },
         {
-            label: 'PO4 - Sodium Glycophos (mL)',
+            label: 'NaCl 3%',
         },
         {
-            label: 'Mg - MgSO4 20% (mL)',
+            label: 'PO4 - Sodium Glycophost',
             withoutNeedField: true
         },
         {
-            label: 'Soluvit (mL)'
+            label: 'D40%'
         },
         {
-            label: 'Heparin (IU)',
+            label: 'D10%',
             withoutNeedField: true
         }
     ];
@@ -157,7 +160,7 @@
             type: 'number',
         },
         {
-            label: 'Durasi Pemberian (Jam)',
+            label: 'Durasi Infus (Jam)',
             required: false,
             name: 'setup_continue_duration',
             type: 'number',
@@ -272,8 +275,13 @@
 
     const defaultValueOtherTransfusion = (inputCorrection: string, index: number) => {
         let value = 0
+
         if (inputCorrection === 'amount_transfusion' && form['other_transfusion_need'] != null) {
-            value = checkValueNumber(form['other_transfusion_need'][index]) * checkValueNumber(form['actual_weight'])
+            if (index > 1) {
+                value = checkValueNumber(form['other_transfusion_need'][index]) * checkValueNumber(form['actual_age'])
+            }else{
+                value = checkValueNumber(form['other_transfusion_need'][index]) * checkValueNumber(form['actual_weight'])
+            }
             form['other_transfusion_amount_transfusion'][index] = checkValueNumber(value).toFixed(2)
         }else if (inputCorrection == 'rate' && form['other_transfusion_amount_transfusion'] != null) {
             value = checkValueNumber(form['other_transfusion_amount_transfusion'][index]) / checkValueNumber(form['other_transfusion_duration'][index])
@@ -456,26 +464,20 @@
         if(field == 'volume' && form['pg_volume'] != null){
             if(index == 0){
                 const prc_transfusion_amount = form['prc_transfusion_amount_transfusion'].reduce((a: number, b: number) => a + b, 0)
-                value = form['total_fluid_volume'] - form['total_fluid_continue'] - form['total_fluid_intermitten'] - prc_transfusion_amount - form['other_transfusion_total'] - form['nutrition_total'][1] - form['parental_total'] - form['correction_continue_total_fluid'] - form['correction_intermitten_daily_total']
+                const nutrition_total = parseFloat(form['nutrition_total'][0]) + parseFloat(form['nutrition_total'][1])
+                value = getPGVolume(form['total_fluid_volume'] , form['total_fluid_continue'], form['total_fluid_intermitten'], form['correction_intermitten_daily_total'], prc_transfusion_amount, form['other_transfusion_total'], nutrition_total, form['parental_total'], form['correction_continue_total_fluid'])
 
-            }else{
-                let result = 0;
-                nonDextroseFields.forEach((field: any, index: number) => {
-                    if (index != nonDextroseFields.length - 1) {
-                        result = result + parseFloat(form['non_dextrose_total'][index])
-                    }
-                })
-                value = parseFloat((form['pg_'+field][0] - result).toFixed(2))
             }
             form['pg_'+field][index] = checkValueNumber(value).toFixed(2);
 
         }else if(field == 'total' && form['pg_volume'] != null){
             value = safeDivide(form['pg_volume'][index], form['actual_weight']);
             form['pg_'+field][index] = value.toFixed(2);
-        }else if(field == 'rate_continue' && form['pg_volume'] != null){
-            value = safeDivide(form['pg_volume'][index], 24);
-            form['pg_'+field] = parseFloat(value.toFixed(2));
         }
+        // else if(field == 'rate_continue' && form['pg_volume'] != null){
+        //     value = safeDivide(form['pg_volume'][index], 24);
+        //     form['pg_'+field] = parseFloat(value.toFixed(2));
+        // }
 
         return value.toFixed(2);
 
@@ -492,7 +494,7 @@
 
         }else if(field == 'total' && form['nutrition_need'] != null){
             if (index == 0) {
-                value = form['nutrition_need'][index] * form['gestational_age']
+                value = form['nutrition_need'][index] * form['actual_weight']
             }else if(index == 1){
                 value = form['nutrition_need'][index] * form['actual_weight']
             }
@@ -510,98 +512,150 @@
 
     const getNonDextrose = (index: number) => {
         let value = 0;
-        let fixed = 2
+        let fixed = 2;
         if(form['non_dextrose_name'] != null){
-            if (index == 0) {
-                const total = parseFloat(form['non_dextrose_need'][index]) * parseFloat(form['actual_weight']) * 100
-                value = safeDivide(total, 10);
+            if(index < 8){
+                const integers = [10, 0.3, 1.2, 0, 0, 0, 4.9, 13.5]
+                if (integers[index] != 0) {
+                    value = safeDivide((integers[index] * form['pg_estimate']['volume']), 30)
 
-
-            }else if(index == 1){
-                const weight = form['actual_weight'] * 1000 * parseFloat(form['non_dextrose_need'][index])
-                value = safeDivide(weight , 513);
-
-
-            }else if([2,3,4,6].includes(index)){
-                value =  parseFloat(form['non_dextrose_need'][index]) * form['actual_weight']
-            }else if(index == 5){
-                value = safeDivide(form['actual_weight'] * 40, 200);
-            }else{
-                value = safeDivide(form['pg_volume'][0], 2);
+                }
+            }else if(index == 8 &&  form['non_dextrose_volume'] != null){
+                value = calculationComposition.value
                 fixed = 0
-            }
 
-            form['non_dextrose_total'][index] = value.toFixed(fixed);
+            }else if(index == 9 &&  form['non_dextrose_volume'] != null){
+                value = safeDivide(calculationComposition.value, 24)
+            }else if(index == 10 &&  form['non_dextrose_volume'] != null){
+                value = safeDivide(((40 * form['non_dextrose_volume'][6]) + (10 * form['non_dextrose_volume'][7])), form['non_dextrose_volume'][8])
+            }else if(index == 11 &&  form['non_dextrose_volume'] != null){
+                value = safeDivide((form['non_dextrose_volume'][9] * form['non_dextrose_volume'][10]), (6*form['actual_weight']))
+            }else if(index == 12 &&  form['non_dextrose_volume'] != null){
+                value = osmolarity(form['pg_needs']['level'], form['actual_weight'], form['non_dextrose_volume'][6], form['non_dextrose_volume'][7], form['non_dextrose_volume'][4], form['non_dextrose_volume'][1], form['non_dextrose_volume'][2], form['non_dextrose_volume'][3], form['non_dextrose_volume'][8],form['parental_need'][0],form['parental_total'])
+            }else if(index == 13 &&  form['non_dextrose_volume'] != null){
+                value = form['pg_volume'][0] - form['non_dextrose_volume'][8]
+            }else if(index == 14 && form['non_dextrose_volume'] != null){
+                value = safeDivide(form['non_dextrose_volume'][13], form['actual_weight'])
+
+            }
+            form['non_dextrose_volume'][index] = value.toFixed(fixed);
 
         }
+        return value.toFixed(2)
     }
 
     const getDextrose = (index: number) => {
         if (index > 0 && form['dextrose'] != null) {
             let result = 0;
+
             if (index == 1) {
                 // gir terukur
-                result = safeDivide((form['pg_rate_continue'] * form['dextrose'][5]), (6 * form['actual_weight']));
+                const ag = safeDivide(form['non_dextrose_volume'][13], 24) * form['dextrose'][3]
+                const bg = 6 * form['actual_weight']
 
+                result = safeDivide(ag,bg);
             }else if(index == 2 ){
-
-                // volume D40
-                const calculate = form['dextrose'][4] * form['pg_volume'][0]
-                const calculate1 = form['pg_volume'][1] * 10
-                const hasil = parseFloat(calculate.toFixed(2)) - parseFloat(calculate1.toFixed(2))
-                const value = hasil / 30;
-
-                result = Math.max(0, value > form['pg_volume'][1] ? form['pg_volume'][1] : value.toFixed(2));
-            }else if (index == 3){
-                // volume D10
-
-                result = parseFloat(form['dextrose'][0]) > 0 ?  Math.max(form['pg_volume'][1] - form['dextrose'][2], 0) : 0;
-
-            }else if(index == 4){
                 // Dekstrositas (%)
-                const calculate = (form['dextrose'][0] * 6 * form['actual_weight']).toFixed(1)
-                result = parseFloat(form['dextrose'][0]) > 0 ? Math.min(safeDivide(parseFloat(calculate), form['pg_rate_continue']), 25) : 0;
-            }else if(index == 5){
+                const calculate = form['dextrose'][0] * 6 * form['actual_weight']
+                const calculate1 = safeDivide(form['non_dextrose_volume'][13], 24)
+                const hasil = calculate
+
+                result = form['non_dextrose_volume'][13] == 0 ? 0 : Math.min(hasil, 25);
+            }else if (index == 3){
                 // Dekstrositas Terkoreksi (%)
 
+                const hasil = safeDivide((form['dextrose'][4] * 40 + form['dextrose'][6] * 10), form['non_dextrose_volume'][13])
+                result = form['non_dextrose_volume'][13] == 0 ? 0 : hasil;
 
-                result = safeDivide(((parseFloat(form['dextrose'][2]) * 40) + (parseFloat(form['dextrose'][3]) * 10)), form['pg_volume'][0])
+            }else if(index == 4){
+                // Volume D40%
+                const hitung = ((form['dextrose'][2] * form['non_dextrose_volume'][13]) - (form['non_dextrose_volume'][13] * 10)) / 30;
+                const hasil = hitung > form['non_dextrose_volume'][13] ? form['non_dextrose_volume'][13] : hitung;
+
+                result = (form['non_dextrose_volume'][13] == 0 || form['dextrose'][0] == 0 ) ? 0 : hasil;
+            }else if(index == 5){
+                // Rate D40
+                result = form['dextrose'][4] / 24
+
             }else if(index == 6){
-                // Osmolaritas (mOsm/L)
+                // Volume D10%
 
-                const calculate =
-                      safeDivide( (form['non_dextrose_need'][0] * form['actual_weight'] * 1000) , form['pg_volume'][0])
-                    + safeDivide( (((0.4 * form['dextrose'][2]) + (0.1 * form['dextrose'][3])) * 1000 * 5) , form['pg_volume'][0])
-                    + safeDivide( (0.513 * form['non_dextrose_total'][1] * 1000) , form['pg_volume'][0])
-                    + safeDivide( (form['non_dextrose_total'][2] * 1000) , form['pg_volume'][0])
-                    + safeDivide( (form['non_dextrose_total'][4] * 2 * 1000) , form['pg_volume'][0])
-                    + safeDivide( (form['non_dextrose_total'][4] * 2 * 1000) , form['pg_volume'][0])
-                    + safeDivide( (0.93 * form['non_dextrose_total'][3] * 1000) , form['pg_volume'][0])
-                    + safeDivide( (8 * form['non_dextrose_total'][5] * 1000) , form['pg_volume'][0])
-                    + safeDivide( (form['parental_need'][0] * form['actual_weight'] * 0.7 * 1000) , form['parental_total']);
+                result = Number(form['dextrose'][0]) != 0 ? Math.max(form['non_dextrose_volume'][13]-form['dextrose'][4], 0) : 0
 
-                result = osmolarity(form['pg_volume'][0], form['parental_total'], form['non_dextrose_need'][0], form['actual_weight'], form['dextrose'][2],form['dextrose'][3], form['non_dextrose_total'][1], form['non_dextrose_total'][2], form['non_dextrose_total'][4], form['non_dextrose_total'][3], form['non_dextrose_total'][5], form['parental_need'][0]  )
+
+            }else if(index == 7){
+                // Rate D10
+                result = form['dextrose'][6] / 24
             }
 
-            form['dextrose'][index] = result.toFixed(2);
+            try {
+
+                form['dextrose'][index] = result.toFixed(2);
+            } catch (error) {
+                console.log("eror"+index);
+                console.error(error);
+
+            }
+
+
         }
 
         return 0
     }
 
-    const cairanNote = computed(() => {
-        const note = getCairanNote(parseFloat(form['actual_age']), parseFloat(form['gestational_age']), parseFloat(form['fluid_volume_per_day']), parseFloat(form['total_fluid_volume']) )
+    const cairanNote = () => {
+        const note = getCairanNote(form['gestational_age'], form['actual_weight'], form['calculated_formula'])
 
         form['formula_warning_total_volume_note'] = note
-
         return note
+    }
+
+    const getTotalFormula = computed(() => {
+
+        if (form['nutrition_total']) {
+            const a =
+                parseFloat(form['total_fluid_intermitten'] )+
+                parseFloat(form['correction_continue_total_fluid'] )+
+                parseFloat(form['correction_intermitten_daily_total'] )+
+                parseFloat(form['prc_transfusion_amount_transfusion'] )+
+                parseFloat(form['other_transfusion_total'])+
+                parseFloat(form['nutrition_total'][0])+
+                parseFloat(form['parental_total'])+
+                parseFloat(form['non_dextrose_volume'][8])+
+                parseFloat(form['dextrose'][4])+
+                parseFloat(form['dextrose'][6])
+
+            const result = safeDivide(a, form['actual_weight'])
+
+            form['calculated_formula'] = result.toFixed(2)
+            cairanNote()
+            return result.toFixed(2)
+        }
+        return 0
     })
+
 
     const warningBalanceEstimate = (field: string) => {
         let value = 0
-        if (field == 'balance_estimate') {
-            const calculate = form['output_fluid'] * safeDivide(24, form['time_calculation'])
-            value = parseFloat(form['total_fluid_volume']) - (parseFloat(form['insensible_water_loss']) + calculate )
+        if (field == 'balance_estimate' && form['nutrition_total'] != null) {
+
+            const a = parseFloat(form['total_fluid_continue'] )+
+            parseFloat(form['total_fluid_intermitten'] )+
+            parseFloat(form['correction_continue_total_fluid'] )+
+            parseFloat(form['correction_intermitten_daily_total'] )+
+            parseFloat(form['prc_transfusion_amount_transfusion'] )+
+            parseFloat(form['other_transfusion_total'])+
+            parseFloat(form['nutrition_total'][0])+
+            parseFloat(form['nutrition_total'][1])+
+            parseFloat(form['parental_total'])+
+            parseFloat(form['non_dextrose_volume'][8])+
+            parseFloat(form['dextrose'][4])+
+            parseFloat(form['dextrose'][6])
+
+            const b = parseFloat(form['insensible_water_loss']) + (parseFloat(form['output_fluid']) * safeDivide(24, parseFloat(form['time_calculation'])))
+
+            value = Number(form['time_calculation']) > 0 ? a - b : 0
+
             form['formula_warning_balance_estimate'] = value.toFixed(2);
         }else{
             value = safeDivide(form['formula_warning_balance_estimate'], form['actual_weight'])
@@ -610,23 +664,21 @@
     }
 
     const warningElectrolyte = (field: string, index: number = 0) => {
-        let value:any = 0;
+        let value:any = 0
+
         if (field === 'electrolyte_estimate' && form['correction_continue_total_volume'] != null) {
-            value = calculateEstimateElectrolyte(form['actual_weight'], form['correction_continue_total_volume'][0],  form['correction_continue_dilution'][0], form['non_dextrose_total'][1], form['non_dextrose_total'][4])
+            value = calculateEstimateElectrolyte(parseFloat(form['actual_weight']), parseFloat(form['correction_continue_total_volume'][0]), parseFloat(form['correction_continue_dilution'][0]), parseFloat(form['non_dextrose_volume'][4]), parseFloat(form['non_dextrose_volume'][5]))
+
             form['formula_warning_electrolyte_estimate'] = value.toFixed(2);
         } else if(field === 'daily_dose' && form['correction_continue_total_volume'] != null){
-            value = safeDivide((form['correction_continue_total_volume'][1] - form['correction_continue_dilution'][1]) + form['non_dextrose_total'][2], form['actual_weight']);
-
+            value = safeDivide((parseFloat(form['correction_continue_total_volume'][1]) - parseFloat(form['correction_continue_dilution'][1]) + parseFloat(form['non_dextrose_volume'][1])), form['actual_weight'])
             form['formula_warning_electrolyte_daily_dose'] = value.toFixed(2);
         }else {
             if (index == 0) {
-
-                value = evaluateNatrium(form['natrium'], parseFloat(form['formula_warning_electrolyte_estimate']))
+                value = evaluateNatrium(parseFloat(form['natrium']), form['formula_warning_electrolyte_estimate'])
             }else{
-                value = kaliumWarning(form['action_weight'], form['formula_warning_electrolyte_daily_dose'], form['kalium']);
+                value = kaliumWarning(form['formula_warning_electrolyte_daily_dose'], form['gestational_age'],form['kalium'])
             }
-
-
             form['formula_warning_note'] != null ? form['formula_warning_note'][index] = value : null
 
         }
@@ -635,15 +687,16 @@
     };
 
     const getNutritionNote = (field: string) => {
-        let value = '';
+
+        let value: any = '';
         if (field == 'lipid' && form['parental_need'] != null) {
             value = evaluasiLipid(form['actual_age'], form['parental_need'][0])
             form['warning_nutrition_note'][0] = value;
-        }else if(field === 'protein' && form['non_dextrose_need'] != null){
-            value = evaluasiProtein(form['actual_age'], form['gestational_age'], form['non_dextrose_need'][0])
+        }else if(field === 'protein' && form['warning_nutrition_formula'] != null){
+            value = evaluasiProtein(parseFloat(form['warning_nutrition_formula'][1]), parseFloat(form['gestational_age']), parseFloat(form['actual_age']))
             form['warning_nutrition_note'][1] = value;
         }else if(field == 'gir' && form['dextrose'] != null){
-            value = evaluasiGIR(form['actual_age'], form['gestational_age'], form['dextrose'][1])
+            value = evaluasiGIR(parseFloat(form['warning_nutrition_formula'][2]), parseFloat(form['gestational_age']), parseFloat(form['actual_age']))
             form['warning_nutrition_note'][2] = value
         }
 
@@ -653,28 +706,87 @@
 
     const getNutritionFormula = (index:number) => {
         let value = 0
+        let fixed = 1
         if (form['warning_nutrition_formula'] != null) {
             if (index == 0) {
                 value = parseFloat(form['parental_need'][0])
             }else if(index == 1){
-                value = parseFloat(form['non_dextrose_need'][0])
+                value = parseFloat(form['pg_needs']['level'])
             }else{
-                value = parseFloat(form['dextrose'][1])
+                value = parseFloat(form['non_dextrose_volume'][11]) + parseFloat(form['dextrose'][1])
+                fixed = 2
             }
-            form['warning_nutrition_formula'][index] = value.toFixed(1)
+            form['warning_nutrition_formula'][index] = value.toFixed(fixed)
         }
     }
 
     const removeOtherTransfusion = (index: number) => {
         if (index > 1) {
 
-            ['name','need', 'amount_transfusion', 'duration', 'rate'].forEach((correction, index) => {
+            ['name', 'need', 'amount_transfusion', 'duration', 'rate'].forEach((correction, index) => {
                form['other_transfusion_' + correction] =  form['other_transfusion_' + correction].splice(index, 1);
             })
 
             countTransfusion.value = countTransfusion.value - 1
         }
     }
+
+
+    const getPGNeed = (field: string) => {
+        let value = 0;
+        if (form['pg_needs'] != null) {
+            if(field == 'total_target'){
+                value = parseFloat(form['pg_needs']['level']) * parseFloat(form['actual_weight'])
+            }else if(field == 'measurable_protein' && form['pg_estimate'] != null){
+                value = safeDivide(safeDivide(form['pg_estimate']['volume'] , 30), form['actual_weight'])
+            }else if(field == 'total_protein' && form['pg_estimate'] != null){
+                value = safeDivide(form['pg_estimate']['volume'] , 30)
+            }
+
+            if (field != 'level') {
+                form['pg_needs'][field] = value.toFixed(2)
+            }
+        }
+
+        return value.toFixed(2)
+    }
+
+    const getPGEstimate = (field: string) => {
+        let value = 0
+
+        if(field == 'volume' && form['pg_needs'] != null && form['pg_volume'] != null){
+
+            value = Math.min(parseFloat(form['pg_needs']['total_target']) * 30, form['pg_volume'][0])
+        }else if(field == 'total' && form['pg_estimate'] != null){
+            value = safeDivide(form['pg_estimate']['volume'], form['actual_weight'])
+        }
+        form['pg_estimate'] != null ? form['pg_estimate'][field] = value.toFixed(2) : null
+
+        return value.toFixed(2)
+    }
+
+    const calculationComposition = computed(() => {
+        let volume = 0;
+        if (form['non_dextrose_volume'] != null) {
+            form['non_dextrose_volume'].forEach((v: any, i:number) => {
+                volume = volume + (i < 8 ? parseFloat(v) : 0);
+            });
+        }
+
+        return volume;
+    })
+
+    const getNonDextroseTotal = computed(() => {
+        let value = 0;
+        if(form['non_dextrose_volume'] != null){
+
+            value = safeDivide(form['non_dextrose_volume'][8], form['actual_weight'])
+
+            form['non_dextrose_total'] = value.toFixed(2)
+        }
+
+        return value.toFixed()
+    })
 
     onMounted(() => {
         if (form['other_transfusion_name'] == null) {
@@ -750,9 +862,9 @@
             form['parental_'+value] = form['parental_'+value] ?? [0, 0]
         });
 
-        ['Volume PG Total', 'Volume Dextrosa Yang Dapat Diberikan di Dalam PG'].forEach((value, index) => {
-            form['pg_volume'] = form['pg_volume'] ?? [0, 0]
-            form['pg_total'] = form['pg_total'] ?? [0, 0]
+        ['Cairan Tersedia untuk PG1'].forEach((value, index) => {
+            form['pg_volume'] = form['pg_volume'] ?? [0]
+            form['pg_total'] = form['pg_total'] ?? [0]
         });
 
         form['total_fluid_continue'] = form['total_fluid_continue'] ?? 0;
@@ -762,24 +874,39 @@
             form['nutrition_'+value] = form['nutrition_'+value] ?? [0, 0]
         });
 
-        // non_dextrose_need
-        // non_dextrose_total
+        // non_dextrose_volume
         const ndf: any = [];
         nonDextroseFields.forEach((field, index) => {
             ndf.push(field.label)
-            form['non_dextrose_need'] = form['non_dextrose_need'] ?? [0, 0, 0, 0, 0 ,0 , 0, 0]
-            form['non_dextrose_total'] = form['non_dextrose_total'] ?? [0, 0, 0, 0, 0 ,0 , 0, 0]
         })
+        form['non_dextrose_volume'] = form['non_dextrose_volume'] ?? [0, 0, 0, 0, 0 ,0 , 0, 0,0,0,0,0,0,0]
         form['non_dextrose_name'] = form['non_dextrose_name'] ?? ndf;
+        form['non_dextrose_total'] = form['non_dextrose_total'] ?? 0;
 
-        form['dextrose'] = form['dextrose'] ?? [0,0,0,0,0,0,0]
+        form['dextrose'] = form['dextrose'] ?? [0,0,0,0,0,0,0,0]
 
         form['formula_warning_note'] = form['formula_warning_note'] ?? ['', '']
         form ['warning_nutrition_note'] = form['warning_nutrition_note'] ?? ['', '', '']
         form ['warning_nutrition_formula'] = form['warning_nutrition_formula'] ?? ['', '', '']
+
+        form['pg_needs'] = form['pg_needs'] ?? {
+            level: 0,
+            total_target: 0,
+            measurable_protein: 0,
+            total_protein: 0,
+        }
+
+        form['pg_estimate'] = form['pg_estimate'] ?? {
+            volume: 0,
+            total: 0
+        }
+
+        form['calculated_fluid_volume'] = form['calculated_fluid_volume'] ?? 0
+        form['calculated_formula'] = form['calculated_formula'] ?? 0
     })
 </script>
 <template>
+
     <div class="grid w-full grid-cols-12 p-5 rounded-lg gap-7">
         <div :class="field.size" class="col-span-12" v-for="field in patientFields">
             <InputGroup :form="form" :label="field.label" :name="field.name" :type="field.type" :placeholder="field?.placeholder" :required="field.required" :disabled="field?.disabled" :defaultValue="field?.defaultValue"  :options="field?.options" :handleChange="field?.handleChange" />
@@ -791,7 +918,7 @@
             <InputGroup :form="form" :label="field.label" :name="field.name" :type="field.type" :placeholder="field?.placeholder" :required="field.required" :disabled="field?.disabled" :defaultValue="field?.defaultValue"  :options="field?.options" :handleChange="field?.handleChange" />
         </div>
     </div>
-    <div class="col-span-12 px-5 mt-10 mb-2 text-lg font-bold"> OBAT INTERVENA KONTINYU - BICNAT, INTROPIK, VASOLPRESSOR, SEDASI</div>
+    <div class="col-span-12 px-5 mt-10 mb-2 text-lg font-bold"> OBAT INTERVENA KONTINYU</div>
     <div class="grid w-full grid-cols-12 px-5 rounded-lg gap-7">
         <div class="col-span-12 pt-4 md:col-span-3">
             <Button @click="setupContinueModal = true" type="button">Setup Kebutuhan Intervena Kontinyu</Button>
@@ -875,8 +1002,8 @@
                 <tr class="text-left">
                     <th class="px-2 text-[14px]"></th>
                     <th class="px-2 text-[14px]">Target Hb</th>
-                    <th class="px-2 text-[14px]">Jumlah Transfusi mL</th>
-                    <th class="px-2 text-[14px]">Rasio Terukur</th>
+                    <th class="px-2 text-[14px]">Kebutuhan Transfusi (mL)</th>
+                    <th class="px-2 text-[14px]">Rasio Terukur (mL/kg)</th>
                     <th class="px-2 text-[14px]">Durasi Pemberian (Jam)</th>
                 </tr>
             </thead>
@@ -910,10 +1037,10 @@
                 <tr class="text-left">
                     <th class="px-2 text-[14px]"></th>
                     <th class="px-2 text-[14px]">Kebutuhan (mL/kg)</th>
-                    <th class="px-2 text-[14px]">Jumlah Transfusi </th>
+                    <th class="px-2 text-[14px]">Hasil Kalkulasi </th>
                     <th class="px-2 text-[14px]">Durasi Pemberian (Jam)</th>
                     <th class="px-2 text-[14px]">Rate Transfusi (mL/Jam)</th>
-                    <th></th>
+                    <th class="px-2 text-[14px]"></th>
                 </tr>
             </thead>
             <tbody>
@@ -921,7 +1048,7 @@
                     <td class="py-2">
                         {{ correction }}
                     </td>
-                    <td class="px-2 py-2" v-for="(inputCorrection, ic) in ['need', 'amount_transfusion', 'duration', 'rate']">
+                    <td class="px-2 py-2" v-for="(inputCorrection, ic) in ['need', 'amount_transfusion', 'duration', 'rate']" :index="ic">
                         <InputGroup :form="form" :name="'other_transfusion_'+inputCorrection" :index="index" :defaultValue="defaultValueOtherTransfusion(inputCorrection, index)" :type="'number'" :disabled="[1,3].includes(ic) ? true : false" placeholder="0"/>
                     </td>
                 </tr>
@@ -929,7 +1056,7 @@
                     <td class="p-2">
                         <InputGroup :form="form" :name="'other_transfusion_name'" :index="idx + 2" :type="'text'" placeholder="Input Transfusi" />
                     </td>
-                    <td class="px-2 py-2" v-for="(inputCorrection, ic) in ['need', 'amount_transfusion', 'duration', 'rate']">
+                    <td class="px-2 py-2" v-for="(inputCorrection, ic) in ['need', 'amount_transfusion', 'duration', 'rate']" :key="ic">
                         <InputGroup :form="form" :name="'other_transfusion_'+inputCorrection" :index="idx + 2" :defaultValue="defaultValueOtherTransfusion(inputCorrection, idx+2)" :type="'number'" :disabled="[1,3].includes(ic) ? true : false"/>
                     </td>
                     <td class="px-2 py-2">
@@ -962,9 +1089,9 @@
         <table class="w-full">
             <thead>
                 <tr class="text-left">
-                    <th class="px-2 text-[14px]">ORAL/ENETRAL</th>
+                    <th class="px-2 text-[14px]">Nama Formula</th>
                     <th class="px-2 text-[14px]">Kebutuhan (mL/kg)</th>
-                    <th class="px-2 text-[14px]">Kalori dari Nutrisi Oral Per 100 mL (kcal/ 100 mL) </th>
+                    <th class="px-2 text-[14px]">Kalori (kcal/ 100 mL) </th>
                     <th class="px-2 text-[14px]">Interval Antar Minum (jam)</th>
                     <th class="px-2 text-[14px]">Volume Per Kali Minum</th>
                     <th class="px-2 text-[14px]">Total Minum/Hari</th>
@@ -975,7 +1102,7 @@
                     <td class="py-2">
                         <InputGroup :form="form" :name="'nutrition_name'" :index="index" :type="typeof correction === 'string' ? 'text' : 'select'" placeholder="Input Nutrisi" :defaultValue="typeof correction === 'string' ? correction : correction[0].value" :options="typeof correction === 'string' ? [] : correction"/>
                     </td>
-                    <td class="px-2 py-2" v-for="(inputCorrection, ic) in ['need', 'calories', 'interval', 'volume', 'total']">
+                    <td class="px-2 py-2" v-for="(inputCorrection, ic) in ['need', 'calories', 'interval', 'volume', 'total']" :key="ic">
                         <InputGroup :form="form" :name="'nutrition_'+inputCorrection" :defaultValue="getNutrition(inputCorrection, index)" :index="index" :type="'number'" :disabled="ic > 2 ? true : false" :placeholder="'0'"/>
                     </td>
                 </tr>
@@ -1026,19 +1153,18 @@
         </table>
     </div>
 
-    <div class="col-span-12 px-5 mt-6 mb-2 text-lg font-bold">PG (DALAM DISPOSABLE STERILE TPN BAG TERTUTUP DARI CAHAYA LANGSUNG)</div>
+    <div class="col-span-12 px-5 mt-6 mb-2 text-lg font-bold">PG 1 (STARTER)</div>
     <div class="p-5">
         <table class="w-full">
             <thead>
                 <tr class="text-left">
-                <th class="px-2 text-[14px] w-[25%]">Komponen</th>
-                <th class="px-2 text-[14px]">Volume</th>
-                <th class="px-2 text-[14px]">mL/kg</th>
-                <th class="px-2 text-[14px]">Rate Kontinyu (mL/jam)</th>
+                    <th class="px-2 text-[14px] w-[25%]"></th>
+                    <th class="px-2 text-[14px]">Cairan (mL)</th>
+                    <th class="px-2 text-[14px]">mL/kg</th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(correction, ip) in ['Volume PG Total', 'Volume Dextrosa Yang Dapat Diberikan di Dalam PG']" :key="ip">
+                <tr v-for="(correction, ip) in ['Cairan Tersedia untuk PG1']" :key="ip">
                     <td class="p-2">
                         {{ correction }}
                     </td>
@@ -1050,37 +1176,32 @@
                         <InputGroup :disabled="true" :form="form" :name="'pg_total'" :index="ip" type="number"  :defaultValue="getPG('total', ip)"/>
                     </td>
 
-                    <td v-if="ip === 0" class="" >
-                        <InputGroup :disabled="true" :form="form" name="pg_rate_continue" type="number" :defaultValue="getPG('rate_continue', 0)" />
-                    </td>
-                    <td v-else style="display: none"></td>
+
                 </tr>
             </tbody>
 
         </table>
     </div>
-
-    <div class="col-span-12 px-5 mt-6 mb-2 text-lg font-bold">KOMPONEN NON-DEXTROSE (TERMASUK DALAM STERILE TPN BAG)</div>
+    <div class="col-span-12 px-5 mt-6 mb-2 text-lg font-bold">HITUNG KEBUTUHAN PG1</div>
     <div class="p-5">
         <table class="w-full">
             <thead>
                 <tr class="text-left">
                     <th class="px-2 text-[14px] w-[25%]">Komponen</th>
-                    <th class="px-2 text-[14px]">Kebutuhan</th>
-                    <th class="px-2 text-[14px]">Total (mL/hari atau IU/hari)</th>
+                    <th class="px-2 text-[14px]">Kadar Protein Target</th>
+                    <th class="px-2 text-[14px]">Total Target Protein Harian (gr/hari)</th>
+                    <th class="px-2 text-[14px]">Protein Terukur yang Diberikan (gr/kg)</th>
+                    <th class="px-2 text-[14px]">Total Protein Terkoreksi (gr/hari)</th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(correction, ip) in nonDextroseFields" :key="ip">
+                <tr v-for="(correction, ip) in ['Protein (gr/kg)']" :key="ip">
                     <td class="p-2">
-                        {{ correction.label }}
+                        {{ correction }}
                     </td>
 
-                    <td class="px-2 py-2">
-                        <InputGroup :form="form" :name="'non_dextrose_need'" :index="ip" type="number" v-show="correction.withoutNeedField != true"  placeholder="0"/>
-                    </td>
-                    <td class="px-2 py-2">
-                        <InputGroup :form="form" :name="'non_dextrose_total'" :index="ip" type="number" :disabled="true" placeholder="0.00" :defaultValue="getNonDextrose(ip)"/>
+                    <td class="px-2 py-2" v-for="(field, fi) in ['level', 'total_target', 'measurable_protein', 'total_protein']" :key="fi">
+                        <InputGroup :disabled="fi == 0 ? false : true" :form="form" :name="'pg_needs'" :index="field" type="number" :defaultValue="getPGNeed(field)" />
                     </td>
 
                 </tr>
@@ -1088,33 +1209,129 @@
 
         </table>
     </div>
-    <div class="col-span-12 px-5 mt-6 mb-2 text-lg font-bold">KOMPONEN DEXTROSE (TERMASUK DALAM STERILE TPN BAG)</div>
+    <div class="p-5">
+        <table class="w-full">
+            <thead>
+                <tr class="text-left">
+                    <th class="px-2 text-[14px] w-[25%]">Estimasi Volume PG1</th>
+                    <th class="px-2 text-[14px]">Volume</th>
+                    <th class="px-2 text-[14px]">mL/kg</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="(correction, ip) in ['Estimasi Volume PG1 sesuai Kebutuhan Protein']" :key="ip">
+                    <td class="p-2">
+                        {{ correction }}
+                    </td>
+
+                    <td class="px-2 py-2" v-for="(field, fi) in ['volume', 'total']" :key="fi">
+                        <InputGroup :disabled="true" :form="form" :name="'pg_estimate'" :index="field" type="number" :defaultValue="getPGEstimate(field)" />
+                    </td>
+                </tr>
+            </tbody>
+
+        </table>
+    </div>
+
+    <div class="p-5 mt-6">
+        <table class="w-full">
+            <tr class="text-left">
+                <th class="px-2 text-[14px] w-[25%]">Komposisi PG1 Terhitung</th>
+                <th class="px-2 text-[14px] w-[25%]">Volume (mL)</th>
+                <th class="px-2 text-[14px] w-[35%] text-center">mL/kg</th>
+            </tr>
+            <tr v-for="(correction, ip) in nonDextroseFields" :key="ip">
+                <td class="p-2">
+                    {{ correction.label }}
+                </td>
+
+                <td class="px-2 py-2">
+                    <InputGroup
+                    :form="form"
+                    :name="'non_dextrose_volume'"
+                    :index="ip"
+                    type="number"
+                    :disabled="true"
+                    placeholder="0.00"
+                    :defaultValue="getNonDextrose(ip)"
+                    />
+                </td>
+
+                <td
+                    v-if="ip === 0"
+                    class="p-2 text-center align-middle"
+                    :rowspan="nonDextroseFields.length + 5"
+                >
+                    <InputGroup
+                    :form="form"
+                    :name="'non_dextrose_total'"
+                    type="hidden"
+                    :disabled="true"
+                    placeholder="0.00"
+                    :defaultValue="getNonDextroseTotal"
+                    />
+                    <div class="text-[30px] text-center font-bold">
+                    {{ form['non_dextrose_total'] }}
+                    </div>
+                </td>
+            </tr>
+
+            <tr>
+                <th class="px-2 text-left text-[14px]" style="vertical-align: top;">Volume Cairan PG1 Terhitung</th>
+                <td class="px-2 py-2">
+                    <InputGroup :form="form" :name="'non_dextrose_volume'" :index="8" type="number" :disabled="true" placeholder="0.00" :defaultValue="getNonDextrose(8)"/>
+                    <template v-if="calculationComposition == 0">
+                        <p class="font-bold">
+                            Jumlah cairan PG melebihi total cairan tersedia untuk PG, mohon kalkulasi ulang kebutuhan PG atau total cairan pasien
+                        </p>
+                    </template>
+                </td>
+            </tr>
+            <tr>
+                <th class="px-2 text-left text-[14px]" style="vertical-align: top;">Rate (mL/jam)</th>
+                <td class="px-2 py-2">
+                    <InputGroup :form="form" :name="'non_dextrose_volume'" :index="9" type="number" :disabled="true" placeholder="0.00" :defaultValue="getNonDextrose(9)"/>
+                </td>
+            </tr>
+            <tr v-for="(tr, ti) in ['Dextrositas', 'GIR Terukur di dalam PG', 'Osmolaritas (mOSm/L)', 'Sisa Cairan Belum Masuk PG1']" :key="ti">
+                <td v-if="ti != 3" class="px-2 text-left text-[14px]" style="vertical-align: top;">{{tr}}</td>
+                <th v-else class="px-2 text-left text-[14px]" style="vertical-align: top;">{{tr}}</th>
+                <td class="px-2 py-2">
+                    <InputGroup :form="form" :name="'non_dextrose_volume'" :index="(10+ti)" type="number" :disabled="true" placeholder="0.00" :defaultValue="getNonDextrose(10+ti)"/>
+                </td>
+                <td v-if="ti === 3" class="px-2 py-2">
+                    <InputGroup :form="form" :name="'non_dextrose_volume'" :index="(14)" type="number" :disabled="true" placeholder="0.00" :defaultValue="getNonDextrose(14)"/>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="col-span-12 px-5 mt-6 mb-2 text-lg font-bold">DEXTROSE MANDIRI</div>
     <div class="p-5">
         <table class="w-full">
             <thead>
                 <tr class="text-left">
                     <th class="px-2 text-[14px] ">GIR Target</th>
                     <th class="px-2 text-[14px]">GIR Terukur </th>
-                    <th class="px-2 text-[14px]">Volume D40%</th>
-                    <th class="px-2 text-[14px]">Volume D10%</th>
                     <th class="px-2 text-[14px]">Dekstrositas (%)</th>
                     <th class="px-2 text-[14px]">Dekstrositas Terkoreksi (%)</th>
-                    <th class="px-2 text-[14px]">Osmolaritas (mOsm/L)</th>
+                    <th class="px-2 text-[14px]">Volume D40%</th>
+                    <th class="px-2 text-[14px]">Rate D40 (mL/jam)</th>
+                    <th class="px-2 text-[14px]">Volume D10%</th>
+                    <th class="px-2 text-[14px]">Rate D10 (mL/jam)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-
-                    <td class="px-2 py-2" v-for="(correction, ip) in ['gir_target', 'gir_terukur', 'volume', 'volume_2', 'dexstrosity', 'dexstrosity_correction', 'osmolarity']" :key="ip">
+                    <td class="px-2 py-2" v-for="(correction, ip) in ['gir_target', 'gir_terukur','dexstrosity', 'dexstrosity_correction',  'volume', 'rate', 'volume_2', 'rate_2']" :key="ip">
                         <InputGroup :form="form" :name="'dextrose'" :index="ip" type="number" :defaultValue="getDextrose(ip)" :disabled="ip > 0 ? true : false" placeholder="0"/>
                     </td>
-
                 </tr>
             </tbody>
 
         </table>
     </div>
-    <div class="col-span-12 px-5 mt-6 mb-2 text-lg font-bold">Tanda Peringatan Formula</div>
+    <div class="col-span-12 px-5 mt-6 mb-2 text-lg font-bold">Estimasi Outcome Pasca Pemberian Terapi Cairan dan Nutrisi Parenteral Total</div>
     <div class="p-5">
         <table class="w-full">
             <tbody>
@@ -1129,7 +1346,7 @@
                         Total Volume (mL/kg)
                     </td>
                     <td class="px-2 py-2">
-                        <InputGroup :form="form" :name="'fluid_volume_per_day'" type="number" :disabled="true" placeholder="0"/>
+                        <InputGroup :form="form" :name="'calculated_formula'" type="number" :disabled="true" :defaultValue="getTotalFormula" placeholder="0"/>
                     </td>
                     <td class="p-2">
                         <div class="hidden">
@@ -1242,7 +1459,7 @@
         </table>
     </div>
 
-    <Dialog :open="setupContinueModal" @close="setupContinueModal = false">
+    <Dialog v-model:open="setupContinueModal" @close="setupContinueModal = false">
         <DialogContent class="sm:max-w-[98%] md:max-w-[800px] p-0 max-h-[90dvh]" :button-close="false">
             <DialogHeader class="p-6 pb-0">
                 <DialogTitle>OBAT INTERVENA KONTINYU</DialogTitle>
@@ -1252,7 +1469,7 @@
                 <table class="w-full ">
                     <thead>
                         <tr>
-                            <td v-for="field in continueFields" class="p-2 text-sm">
+                            <td v-for="field in continueFields" class="p-2 text-sm" :key="field.label">
                                 {{ field.label }}
                             </td>
                             <td>
@@ -1261,8 +1478,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(c, index) in countContinue">
-                            <td class="p-2" v-for="(field, fi) in continueFields">
+                        <tr v-for="(c, index) in countContinue" :key="index">
+                            <td class="p-2" v-for="(field, fi) in continueFields" :key="fi">
                                 <InputGroup :min="0" :form="form" :name="field.name" :index="index" :type="field.type" :placeholder="field?.placeholder" :required="field.required" :disabled="field?.disabled" :defaultValue="fi == continueFields.length - 1 ? getTotalContinue(index) : ''"  :options="field?.options"/>
                             </td>
                             <td class="p-2" v-if="index > 0">
@@ -1296,7 +1513,7 @@
             </DialogFooter>
         </DialogContent>
     </Dialog>
-    <Dialog :open="setupIntermittenModal" @close="setupIntermittenModal = false">
+    <Dialog v-model:open="setupIntermittenModal" @close="setupIntermittenModal = false">
         <DialogContent class="sm:max-w-[98%] md:max-w-[800px] p-0 max-h-[90dvh]" :button-close="false">
             <DialogHeader class="p-6 pb-0">
                 <DialogTitle>OBAT INTERVENA INTERMITTEN</DialogTitle>
@@ -1306,7 +1523,7 @@
                 <table class="w-full ">
                     <thead>
                         <tr>
-                            <td v-for="field in intermitenFields" class="p-2 text-sm">
+                            <td v-for="field in intermitenFields" :key="field.label" class="p-2 text-sm">
                                 {{ field.label }}
                             </td>
                             <td>
@@ -1315,8 +1532,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(c, index) in countIntermitten">
-                            <td class="p-2" v-for="(field, fi) in intermitenFields">
+                        <tr v-for="(c, index) in countIntermitten" :key="index">
+                            <td class="p-2" v-for="(field, fi) in intermitenFields" :key="fi">
                                 <InputGroup :min="0" :form="form" :name="field.name" :index="index" :type="field.type" :placeholder="field?.placeholder" :required="field.required" :disabled="field?.disabled" :defaultValue="fi == continueFields.length - 1 ? getTotalIntermitten(index) : ''"  :options="field?.options"/>
                             </td>
                             <td class="p-2" v-if="index > 0">
