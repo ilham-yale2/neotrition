@@ -16,9 +16,9 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // if (!Auth::check() || Auth::user()->role !== 'admin') {
-        //     return redirect('/dashboard')->with('error', 'Unavailable access');
-        // }
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            return redirect('/dashboard')->with('error', 'Unavailable access');
+        }
         return $next($request);
     }
 }
