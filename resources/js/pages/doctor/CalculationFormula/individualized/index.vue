@@ -177,6 +177,24 @@
 
     }
 
+    // onMounted(() => {
+    //     form['date_of_birth'] = '2011-11-11'
+    //     form['date_formula'] = '2025-04-14'
+    //     form['medical_record_number'] = '5'
+    //     form['actual_age'] = 3
+    //     form['actual_weight'] = 3.3
+    //     form['patient_name'] = 'Amediketu'
+    //     form['gestational_age'] = 2
+    //     form['date_of_treatment'] = '2025-04-13'
+    //     form['day_care'] = 1
+    //     form['clinical_sensation'] = '1'
+    //     form['natrium'] = 2
+    //     form['infant_warmer'] = 1
+    //     form['phototherapy'] = 1
+    //     form['humidity_incubator'] = 1
+    //     form['time_calculation'] = 4
+    //     form['input_fluid'] = 7
+    // })
 
 </script>
 <template>
