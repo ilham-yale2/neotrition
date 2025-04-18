@@ -20,7 +20,7 @@ class AuthenticatedSessionController extends Controller
     public function __construct()
     {
         $this->fb_database = FirebaseService::connect();
-        if (env('APP_ENV') == 'local') {
+        if (env('VITE_APP_ENV') == 'local') {
             $this->fb_login_path = 'localLoginUser/';
         }else{
             $this->fb_login_path = 'loginUser/';
