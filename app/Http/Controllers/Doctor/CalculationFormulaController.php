@@ -136,7 +136,7 @@ class CalculationFormulaController extends Controller
                 $form = $calculationFormula->manual;
                 break;
             case 'individualized':
-                $form = $calculationFormula;
+                $form = $calculationFormula->individualized;
                 break;
             case 'starter':
                 $form = $calculationFormula->starter;
