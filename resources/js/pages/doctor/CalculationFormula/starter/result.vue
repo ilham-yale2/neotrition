@@ -9,7 +9,7 @@ import { computed } from 'vue';
         },
         patients: {
             type: Object,
-            required: true,
+            required: false,
         },
     });
 
@@ -42,7 +42,7 @@ import { computed } from 'vue';
         },
         {
             title: 'Nomor Rekam Medis',
-            value: patient.value?.number || '',
+            value: props.patients ? patient.value?.number : form['medical_record_number'],
         },
         {
             title: 'Tanggal Lahir Pasien',
@@ -54,11 +54,11 @@ import { computed } from 'vue';
         },
         {
             title: 'Usia Aktual Pasien (Hari)',
-            value: form['actual_age'],
+            value: parseFloat(form['actual_age']).toFixed(),
         },
         {
             title: 'Usia gestasi (Minggu)',
-            value: form['gestational_age'],
+            value: parseFloat(form['actual_age']).toFixed(),
         },
         {
             title: 'Berat Aktual Pasien (Kg)',

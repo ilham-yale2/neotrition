@@ -9,7 +9,7 @@ import { computed } from 'vue';
         },
         patients: {
             type: Object,
-            required: true,
+            required: false,
         },
     });
 
@@ -42,7 +42,7 @@ import { computed } from 'vue';
         },
         {
             title: 'Nomor Rekam Medis',
-            value: patient.value?.number || '',
+            value: props.patients ? patient.value?.number : form['medical_record_number'],
         },
         {
             title: 'Tanggal Lahir Pasien',

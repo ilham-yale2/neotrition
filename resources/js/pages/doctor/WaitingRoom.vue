@@ -1,7 +1,30 @@
 <script lang="ts" setup>
     import Button from '@/components/ui/button/Button.vue';
     import ClientLayout from '@/layouts/client/AppLayout.vue';
+    import { ref,get, onValue } from 'firebase/database';
+    import { db } from '@/lib/firebase';
+    import { SharedData, User } from '@/types';
+    import { usePage } from '@inertiajs/vue3';
+    import { onMounted } from 'vue';
 
+    const page = usePage<SharedData>();
+    const user = page.props.auth.user as User;
+    let unsubscribe: (() => void) | null = null
+
+
+    onMounted(() => {
+        const table = import.meta.env.VITE_APP_ENV == 'local' ? 'localLoginUser' : 'loginUser'
+        const userRef = ref(db, `${table}/${user.id}`)
+
+        unsubscribe = onValue(userRef, (snapshot: any) => {
+            const dataUser = snapshot.val();
+
+            if (dataUser.status == 'login') {
+                window.location.reload()
+            }
+
+        })
+    })
 </script>
 
 <template>

@@ -132,7 +132,7 @@
     const steps = [
         'Patient Personal Data',
         'PENGHITUNGAN CAIRAN DAN NUTRISI PARENTERAL',
-        'RESEP NEOtrition - Starter'
+        'RESEP NEOtrition - PG2'
     ]
 
     const CurrentStep = ref(0);
@@ -202,11 +202,11 @@
     // })
 </script>
 <template>
-    <Head title="Starter" />
+    <Head title="PG2" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="px-5 pt-5">
 
-            <div class="text-xl font-bold md:text-2xl">NEOtrition Starter</div>
+            <div class="text-xl font-bold md:text-2xl">NEOtrition PG2</div>
             <div class="text-base font-bold md:text-xl" >{{ steps[CurrentStep] }}</div>
             <Timer :form="form" :paused="paused" :step="CurrentStep"/>
         </div>

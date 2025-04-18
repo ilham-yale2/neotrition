@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\FirebaseService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +12,18 @@ use Inertia\Inertia;
 
 class LoginRequestController extends Controller
 {
+    private $fb_database;
+    private $fb_login_path;
+
+    public function __construct()
+    {
+        $this->fb_database = FirebaseService::connect();
+        if (env('VITE_APP_ENV') == 'local') {
+            $this->fb_login_path = 'localLoginUser/';
+        }else{
+            $this->fb_login_path = 'loginUser/';
+        }
+    }
     /**
      * Display a listing of the resource.
      */
@@ -67,6 +80,14 @@ class LoginRequestController extends Controller
             $user->login_status = 'login';
             $user->last_login = Carbon::now();
             $user->save();
+
+            try {
+                $this->fb_database
+                    ->getReference($this->fb_login_path . $user->id . '/status')
+                    ->set('login');
+            } catch (\Throwable $th) {
+                throw $th;
+            }
             DB::commit();
 
             return redirect()->route('login-request.index')->with('success', 'Berhasil menyetujui Login.');

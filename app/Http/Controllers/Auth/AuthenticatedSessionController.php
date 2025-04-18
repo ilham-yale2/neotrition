@@ -8,11 +8,24 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use App\Services\FirebaseService;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
+    private $fb_database;
+    private $fb_login_path;
+
+    public function __construct()
+    {
+        $this->fb_database = FirebaseService::connect();
+        if (env('APP_ENV') == 'local') {
+            $this->fb_login_path = 'localLoginUser/';
+        }else{
+            $this->fb_login_path = 'loginUser/';
+        }
+    }
     /**
      * Show the login page.
      */
@@ -37,6 +50,18 @@ class AuthenticatedSessionController extends Controller
         if ($user->role == 'doctor') {
             $user->login_status = 'requested';
             $user->save();
+
+           try {
+            $this->fb_database
+            ->getReference($this->fb_login_path . $user->id)
+            ->set([
+                'email' => $user->email,
+                'status' => 'requested',
+                'name' => $user->name,
+            ]);
+           } catch (\Throwable $th) {
+            throw $th;
+           }
 
             return redirect()->intended(route('waiting-room', absolute: false));
         }

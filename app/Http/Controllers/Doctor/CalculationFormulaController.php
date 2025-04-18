@@ -125,4 +125,43 @@ class CalculationFormulaController extends Controller
 
 
     }
+
+    public function show($id)
+    {
+        $calculationFormula = CalculationFormula::findOrFail($id);
+        $form = collect([]);
+
+        switch ($calculationFormula->method) {
+            case 'manual':
+                $form = $calculationFormula->manual;
+                break;
+            case 'individualized':
+                $form = $calculationFormula;
+                break;
+            case 'starter':
+                $form = $calculationFormula->starter;
+                break;
+            case 'pg2':
+                $form = $calculationFormula->parentalGlucose;
+                break;
+            default:
+                $form = null;
+                break;
+
+        }
+
+        $form['id'] = null;
+        $form['patient_name'] = $calculationFormula->patient->name;
+        $form['method'] = $calculationFormula->method;
+        $form['method_aliases'] = $calculationFormula->method == 'pg2' ? 'pg2' : ucfirst($calculationFormula->method);
+        $form['date_of_birth'] = $calculationFormula->patient->date_of_birth;
+        $form['medical_record_number'] = $calculationFormula->patient->medical_record_number;
+        $form['time'] = (int) $calculationFormula->time;
+
+
+        return Inertia::render('doctor/CalculationFormula/Show', [
+            'form' => $form,
+
+        ]);
+    }
 }

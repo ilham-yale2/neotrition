@@ -68,7 +68,16 @@ const handleScroll = () => {
 
 };
 
+const convertSecondsToTime = (totalSeconds: number) => {
+  hours.value = Math.floor(totalSeconds / 3600);
+  minutes.value = Math.floor((totalSeconds % 3600) / 60);
+  seconds.value = totalSeconds % 60;
+};
+
 onMounted(() => {
+    if (props.form.time && typeof props.form.time === 'number') {
+        convertSecondsToTime(props.form.time);
+    }
     startTimer();
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
