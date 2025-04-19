@@ -107,9 +107,7 @@
         <form id="mainForm" action="/" ref="formRef" method="POST">
             <PersonalData :methodCalculation="'manual'" :patients="patients" :form="form" v-if="CurrentStep == 0" />
             <div class="flex justify-end w-full gap-6 p-10">
-                <Button v-if="CurrentStep > 0" @click="backStep" variant="outline" type="button">Back</Button>
-                <Button v-if="CurrentStep < steps.length - 1" @click="nextStep" type="button">Next Step</Button>
-                <Button v-if="CurrentStep == steps.length - 1" type="button" @click="submit">Simpan dan selesaikan</Button>
+                <Button type="button" @click="submit">Simpan dan selesaikan</Button>
             </div>
         </form>
     </AppLayout>
