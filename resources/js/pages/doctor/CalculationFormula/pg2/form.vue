@@ -558,7 +558,7 @@
                 // Dekstrositas (%)
                 const calculate = form['dextrose'][0] * 6 * form['actual_weight']
                 const calculate1 = safeDivide(form['non_dextrose_volume'][13], 24)
-                const hasil = calculate
+                const hasil = safeDivide(calculate, calculate1)
 
                 result = form['non_dextrose_volume'][13] == 0 ? 0 : Math.min(hasil, 25);
             }else if (index == 3){
@@ -569,10 +569,7 @@
 
             }else if(index == 4){
                 // Volume D40%
-                const hitung = ((form['dextrose'][2] * form['non_dextrose_volume'][13]) - (form['non_dextrose_volume'][13] * 10)) / 30;
-                const hasil = hitung > form['non_dextrose_volume'][13] ? form['non_dextrose_volume'][13] : hitung;
-
-                result = (form['non_dextrose_volume'][13] == 0 || form['dextrose'][0] == 0 ) ? 0 : hasil;
+                result = D40(parseFloat(form['dextrose'][0]), parseFloat(form['non_dextrose_volume'][13]), parseFloat(form['dextrose'][2]));
             }else if(index == 5){
                 // Rate D40
                 result = form['dextrose'][4] / 24
@@ -601,6 +598,14 @@
         }
 
         return 0
+    }
+
+    const D40 = (A115: number, B111: number, C115: number) => {
+        if (B111 === 0) return 0;
+        if (A115 === 0) return 0;
+
+        const result = ((C115 * B111) - (B111 * 10)) / 30;
+        return Math.max(0, result > B111 ? B111 : result);
     }
 
     const cairanNote = () => {
