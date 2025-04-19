@@ -8,7 +8,7 @@
     import DialogHeader from '@/components/ui/dialog/DialogHeader.vue';
     import DialogTitle from '@/components/ui/dialog/DialogTitle.vue';
     import DialogFooter from '@/components/ui/dialog/DialogFooter.vue';
-    import {checkValueNumber} from '@/lib/utils';
+    import {checkValueNumber, safeDivide} from '@/lib/utils';
 
 
     const props = defineProps({
@@ -99,43 +99,50 @@
 
     };
 
-    const getInsensibleWaterLoss = computed(() => {
-        let nilaiDasar;
+    const getInsensibleWaterLoss = (fieldName: string) => {
+        let result:any  = 0;
+        if (fieldName === 'insensible_water_loss') {
 
-        if (form['actual_weight'] >= 0.75 && form['actual_weight'] <= 1) {
-            nilaiDasar = 82 * form['actual_weight'];
-        } else if (form['actual_weight'] > 1 && form['actual_weight'] <= 1.25) {
-            nilaiDasar = 56 * form['actual_weight'];
-        } else if (form['actual_weight'] > 1.25 && form['actual_weight'] <= 1.5) {
-            nilaiDasar = 46 * form['actual_weight'];
-        } else {
-            nilaiDasar = 26 * form['actual_weight'];
+            let nilaiDasar;
+
+            if (form['actual_weight'] >= 0.75 && form['actual_weight'] <= 1) {
+                nilaiDasar = 82 * form['actual_weight'];
+            } else if (form['actual_weight'] > 1 && form['actual_weight'] <= 1.25) {
+                nilaiDasar = 56 * form['actual_weight'];
+            } else if (form['actual_weight'] > 1.25 && form['actual_weight'] <= 1.5) {
+                nilaiDasar = 46 * form['actual_weight'];
+            } else {
+                nilaiDasar = 26 * form['actual_weight'];
+            }
+
+            // kondisi lingkungan
+            let faktor = 1;
+
+            if (parseFloat(form['infant_warmer']) === 1) faktor += 0.5;
+            if (parseFloat(form['phototherapy']) === 1) faktor += 0.5;
+            if (parseFloat(form['humidity_incubator']) === 1) faktor -= 0.3;
+            if (parseFloat(form['infant_wrapping']) === 1) faktor -= 0.3;
+
+            if (form['current_temperature'] > 37.5) {
+                faktor += ((form['current_temperature'] - 37.5) / 1) * 0.3;
+            }
+
+            result = checkValueNumber(nilaiDasar * faktor).toFixed(2);
+            console.log(result);
+
+            form['insensible_water_loss'] = result;
         }
-
-        // kondisi lingkungan
-        let faktor = 1;
-
-        if (parseFloat(form['infant_warmer']) === 1) faktor += 0.5;
-        if (parseFloat(form['phototherapy']) === 1) faktor += 0.5;
-        if (parseFloat(form['humidity_incubator']) === 1) faktor -= 0.3;
-        if (parseFloat(form['infant_wrapping']) === 1) faktor -= 0.3;
-
-        if (form['current_temperature'] > 37.5) {
-            faktor += ((form['current_temperature'] - 37.5) / 1) * 0.3;
-        }
-
-        const result = checkValueNumber(nilaiDasar * faktor).toFixed(2);
-        form['insensible_water_loss'] = result;
 
         return result;
-    })
+    }
 
     const getDailyBalansVolume = (fieldName: string) => {
         if (fieldName != 'daily_balance') {
-            const result = checkValueNumber(form[fieldName] / form['actual_weight']).toFixed(1);
-            form[fieldName+'_volume'] = result;
+            const result = safeDivide(parseFloat(form[fieldName]) , parseFloat(form['actual_weight'])).toFixed(2);
+            form[fieldName+'_volume'] = form[fieldName+'_volume'] != result ? result : form[fieldName+'_volume'];
             return result
-        }else{
+        }
+        else{
             try {
 
                 const daily_balance = (parseFloat(form['input_fluid']) * (24 / parseFloat(form['time_calculation']))) - (parseFloat(form['insensible_water_loss']) + (parseFloat(form['output_fluid']) * (24 / parseFloat(form['time_calculation']))));
@@ -370,7 +377,6 @@
             placeholder: '0.00',
             name: 'insensible_water_loss',
             disabled: true,
-            defaultValue: getInsensibleWaterLoss
         },
         {
             label: 'Input Cairan (Total) dalam waktu penghitungan terakhir*',
@@ -484,7 +490,7 @@
                 <div class="mb-4 text-base font-bold md:text-xl">Balans Cairan Harian</div>
                 <div class="grid w-full grid-cols-12 p-5 rounded-lg gap-7">
                     <div :size="field.size" class="flex justify-between w-full col-span-12" v-for="(field, fi) in dailyFluidBalanceFields">
-                        <InputGroup :form="form" :rootClassName="fi > 0 ? 'w-[70%]' : 'w-full'" :label="field.label" :name="field.name" :type="field.type" :placeholder="field?.placeholder" :required="field.required" :disabled="field?.disabled" :defaultValue="field?.defaultValue"  :handleChange="field?.handleChange"
+                        <InputGroup :form="form" :rootClassName="fi > 0 ? 'w-[70%]' : 'w-full'" :label="field.label" :name="field.name" :type="field.type" :placeholder="field?.placeholder" :required="field.required" :disabled="field?.disabled" :defaultValue="getInsensibleWaterLoss(field.name)"  :handleChange="field?.handleChange"
 
                         />
                         <InputGroup v-if="fi != 0" :form="form" :rootClassName="'w-[28%]'" :label="'mL/kg'" :name="field.name+'_volume'" :type="field.type" :placeholder="'0.00'" :required="field.required" :disabled="true" :defaultValue="getDailyBalansVolume(field.name)"
